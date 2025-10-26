@@ -636,7 +636,7 @@ class _AccuracyChart extends StatelessWidget {
                 ),
                 belowBarData: BarAreaData(
                   show: true,
-                  color: Colors.brown.withOpacity(0.1),
+                  color: Colors.brown.withValues(alpha: 0.1),
                 ),
               ),
             ],

@@ -3,18 +3,6 @@ import 'package:firebase_data_connect/firebase_data_connect.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
 
-// Helper functions for JSON serialization
-T nativeFromJson<T>(dynamic value) {
-  if (value == null) {
-    throw ArgumentError('Cannot convert null to non-nullable type $T');
-  }
-  return value as T;
-}
-
-dynamic nativeToJson<T>(T value) {
-  return value;
-}
-
 part 'create_movie.dart';
 
 part 'upsert_user.dart';
@@ -32,6 +20,18 @@ part 'list_user_reviews.dart';
 part 'get_movie_by_id.dart';
 
 part 'search_movie.dart';
+
+// Helper functions for JSON serialization
+T nativeFromJson<T>(dynamic value) {
+  if (value == null) {
+    throw ArgumentError('Cannot convert null to non-nullable type $T');
+  }
+  return value as T;
+}
+
+dynamic nativeToJson<T>(T value) {
+  return value;
+}
 
 
 

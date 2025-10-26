@@ -252,9 +252,11 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
       }
     } catch (e) {
       debugPrint('Classification error: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Classification failed: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Classification failed: $e')));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -407,7 +409,7 @@ class _AccuracyChart extends StatelessWidget {
           return const Center(child: Text('No data'));
         }
         final entries = <Map<String, dynamic>>[];
-        (data as Map).forEach((key, value) {
+        data.forEach((key, value) {
           if (value is Map) {
             entries.add({
               'accuracy_rate':

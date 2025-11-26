@@ -461,13 +461,47 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
             // Chart section
             const Divider(thickness: 2),
             const SizedBox(height: 16),
-            Text(
-              'Prediction History',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.brown,
-              ),
-              textAlign: TextAlign.center,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Prediction History',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.brown,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.refresh, color: Colors.brown),
+                  onPressed: () async {
+                    try {
+                      final snapshot = await FirebaseDatabase.instance
+                          .ref('coffee_predictions')
+                          .get();
+                      debugPrint('🔍 Manual fetch - exists: ${snapshot.exists}');
+                      debugPrint('🔍 Manual fetch - value: ${snapshot.value}');
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              snapshot.exists 
+                                  ? 'Data found! Check console' 
+                                  : 'No data in Firebase',
+                            ),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      debugPrint('🔍 Manual fetch error: $e');
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: $e')),
+                        );
+                      }
+                    }
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -486,20 +520,58 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
 class _AccuracyChart extends StatelessWidget {
   final DatabaseReference _ref = FirebaseDatabase.instance.ref('coffee_predictions');
 
+  final List<String> _allClasses = [
+    'Turkish Coffee Cup',
+    'Japanese Matcha Chawan',
+    'Vietnam Egg Coffee Cup',
+    'Espresso Demitasse Cup',
+    'Double-Walled Insulated Mug',
+    'Reusable Stainless Steel Travel Cup',
+    'Cappucino Cup(Italian Style)',
+    'Latte Glass(Irish Coffee Style)',
+    'Yixing Clay Coffee Cup',
+    'Ceramic Pour-Over Coffee Mug',
+  ];
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<DatabaseEvent>(
       stream: _ref.onValue,
       builder: (context, snapshot) {
+        debugPrint('📊 StreamBuilder state: ${snapshot.connectionState}');
+        debugPrint('📊 Has data: ${snapshot.hasData}');
+        debugPrint('📊 Has error: ${snapshot.hasError}');
+        if (snapshot.hasError) {
+          debugPrint('📊 Error: ${snapshot.error}');
+        }
+        
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
         
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                const SizedBox(height: 8),
+                Text(
+                  'Error: ${snapshot.error}',
+                  style: const TextStyle(color: Colors.red),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        }
+        
         final data = snapshot.data?.snapshot.value;
         debugPrint('📊 Chart data received: $data');
+        debugPrint('📊 Data type: ${data.runtimeType}');
         
-        if (data == null || data is! Map) {
-          debugPrint('📊 No chart data available');
+        if (data == null) {
+          debugPrint('📊 Data is null');
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -520,138 +592,179 @@ class _AccuracyChart extends StatelessWidget {
           );
         }
         
-        final entries = <Map<String, dynamic>>[];
-        data.forEach((key, value) {
-          if (value is Map) {
-            entries.add({
-              'accuracy_rate': (value['accuracy_rate'] as num?)?.toDouble() ?? 0.0,
-              'timestamp': DateTime.tryParse(value['timestamp'] ?? '') ?? DateTime.now(),
-              'cup_variety': value['predicted_class'] ?? 'Unknown',
-            });
-          }
-        });
-        
-        entries.sort((a, b) => (a['timestamp'] as DateTime).compareTo(b['timestamp'] as DateTime));
-        debugPrint('📊 Chart entries: ${entries.length} items');
-        
-        if (entries.isEmpty) {
-          return const Center(
+        if (data is! Map) {
+          debugPrint('📊 Data is not a Map, it is: ${data.runtimeType}');
+          return Center(
             child: Text(
-              'No data available',
-              style: TextStyle(color: Colors.grey),
+              'Unexpected data format: ${data.runtimeType}',
+              style: const TextStyle(color: Colors.red),
             ),
           );
         }
         
-        final spots = <FlSpot>[];
-        for (int i = 0; i < entries.length; i++) {
-          spots.add(FlSpot(i.toDouble(), entries[i]['accuracy_rate'] as double));
+        // Count occurrences of each class
+        final classCounts = <String, int>{};
+        for (var className in _allClasses) {
+          classCounts[className] = 0;
         }
         
-        return LineChart(
-                LineChartData(
-                  minY: 0,
-                  maxY: 100,
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: true,
-                    horizontalInterval: 20,
-                    verticalInterval: 1,
-                    getDrawingHorizontalLine: (value) {
-                      return FlLine(
-                        color: Colors.grey.shade300,
-                        strokeWidth: 1,
-                      );
-                    },
+        // Mapping for old truncated labels to new full labels
+        final labelMapping = {
+          '0 Turkish Coff...': 'Turkish Coffee Cup',
+          '1 Japanese Mat...': 'Japanese Matcha Chawan',
+          '2 Vietnam Egg ...': 'Vietnam Egg Coffee Cup',
+          '3 Espresso Dem...': 'Espresso Demitasse Cup',
+          '4 Double-Walle...': 'Double-Walled Insulated Mug',
+          '5 Reusable Sta...': 'Reusable Stainless Steel Travel Cup',
+          '6 Cappucino Cu...': 'Cappucino Cup(Italian Style)',
+          '7 Latte Glass(...': 'Latte Glass(Irish Coffee Style)',
+          '8 Yixing Clay ...': 'Yixing Clay Coffee Cup',
+          '9 Ceramic Pour...': 'Ceramic Pour-Over Coffee Mug',
+        };
+        
+        debugPrint('📊 Processing ${data.length} entries from Firebase');
+        
+        data.forEach((key, value) {
+          debugPrint('📊 Entry key: $key, value type: ${value.runtimeType}');
+          if (value is Map) {
+            var cupVariety = value['predicted_class'] ?? value['cup_variety'] ?? 'Unknown';
+            
+            // Skip test entries
+            if (cupVariety == 'TEST' || cupVariety == 'TEST_COFFEE') {
+              debugPrint('📊 Skipping test entry: $cupVariety');
+              return;
+            }
+            
+            // Map old truncated labels to new full labels
+            if (labelMapping.containsKey(cupVariety)) {
+              cupVariety = labelMapping[cupVariety]!;
+              debugPrint('📊 Mapped old label to: $cupVariety');
+            }
+            
+            debugPrint('📊 Found cup variety: $cupVariety');
+            if (classCounts.containsKey(cupVariety)) {
+              classCounts[cupVariety] = classCounts[cupVariety]! + 1;
+            } else {
+              debugPrint('⚠️ Cup variety not in class list: $cupVariety');
+            }
+          }
+        });
+        
+        debugPrint('📊 Final class counts: $classCounts');
+        
+        final totalCount = classCounts.values.reduce((a, b) => a + b);
+        debugPrint('📊 Total predictions counted: $totalCount');
+        
+        // Create bar chart data
+        final barGroups = <BarChartGroupData>[];
+        int maxCount = 0;
+        
+        for (int i = 0; i < _allClasses.length; i++) {
+          final count = classCounts[_allClasses[i]] ?? 0;
+          if (count > maxCount) maxCount = count;
+          
+          barGroups.add(
+            BarChartGroupData(
+              x: i,
+              barRods: [
+                BarChartRodData(
+                  toY: count.toDouble(),
+                  color: Colors.brown,
+                  width: 16,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(4),
+                    topRight: Radius.circular(4),
                   ),
-                  titlesData: FlTitlesData(
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 40,
-                        getTitlesWidget: (value, meta) {
-                          return Text(
-                            '${value.toInt()}%',
-                            style: const TextStyle(fontSize: 10),
-                          );
-                        },
-                      ),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 30,
-                        getTitlesWidget: (value, meta) {
-                          if (value.toInt() >= 0 && value.toInt() < entries.length) {
-                            final fullName = (entries[value.toInt()]['cup_variety'] as String)
-                                .split(' ')
-                                .first;
-                            final cupName = fullName.length >= 3 
-                                ? fullName.substring(0, 3) 
-                                : fullName;
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 4),
-                              child: Text(
-                                cupName,
-                                style: const TextStyle(fontSize: 9),
-                              ),
-                            );
-                          }
-                          return const Text('');
-                        },
-                      ),
-                    ),
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  ),
-                  lineTouchData: LineTouchData(
-                    enabled: true,
-                    touchTooltipData: LineTouchTooltipData(
-                      getTooltipItems: (touchedSpots) {
-                        return touchedSpots.map((spot) {
-                          final index = spot.x.toInt();
-                          if (index >= 0 && index < entries.length) {
-                            final cupName = entries[index]['cup_variety'] as String;
-                            final accuracy = spot.y.toStringAsFixed(1);
-                            return LineTooltipItem(
-                              '$cupName\n$accuracy%',
-                              const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            );
-                          }
-                          return null;
-                        }).toList();
-                      },
-                    ),
-                  ),
-                  lineBarsData: [
-                    LineChartBarData(
-                      spots: spots,
-                      isCurved: true,
-                      color: Colors.brown,
-                      barWidth: 3,
-                      dotData: FlDotData(
-                        show: true,
-                        getDotPainter: (spot, percent, barData, index) {
-                          return FlDotCirclePainter(
-                            radius: 5,
-                            color: Colors.brown,
-                            strokeWidth: 2,
-                            strokeColor: Colors.white,
-                          );
-                        },
-                      ),
-                      belowBarData: BarAreaData(
-                        show: true,
-                        color: Colors.brown.withValues(alpha: 0.1),
-                      ),
-                    ),
-                  ],
                 ),
-              );
+              ],
+            ),
+          );
+        }
+        
+        // Calculate appropriate interval for Y-axis
+        final yInterval = maxCount <= 5 ? 1.0 : (maxCount / 5).ceilToDouble();
+        final adjustedMaxY = ((maxCount / yInterval).ceil() + 1) * yInterval;
+        
+        return BarChart(
+          BarChartData(
+            maxY: adjustedMaxY,
+            minY: 0,
+            gridData: FlGridData(
+              show: true,
+              drawVerticalLine: false,
+              horizontalInterval: yInterval,
+              getDrawingHorizontalLine: (value) {
+                return FlLine(
+                  color: Colors.grey.shade300,
+                  strokeWidth: 1,
+                );
+              },
+            ),
+            titlesData: FlTitlesData(
+              leftTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 30,
+                  interval: yInterval,
+                  getTitlesWidget: (value, meta) {
+                    if (value % yInterval == 0) {
+                      return Text(
+                        value.toInt().toString(),
+                        style: const TextStyle(fontSize: 10),
+                      );
+                    }
+                    return const Text('');
+                  },
+                ),
+              ),
+              bottomTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 60,
+                  getTitlesWidget: (value, meta) {
+                    if (value.toInt() >= 0 && value.toInt() < _allClasses.length) {
+                      final className = _allClasses[value.toInt()];
+                      final shortName = className.split(' ').first;
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Transform.rotate(
+                          angle: -0.5,
+                          child: Text(
+                            shortName,
+                            style: const TextStyle(fontSize: 9),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      );
+                    }
+                    return const Text('');
+                  },
+                ),
+              ),
+              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            ),
+            borderData: FlBorderData(show: false),
+            barGroups: barGroups,
+            barTouchData: BarTouchData(
+              enabled: true,
+              touchTooltipData: BarTouchTooltipData(
+                getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                  final className = _allClasses[group.x.toInt()];
+                  final count = rod.toY.toInt();
+                  return BarTooltipItem(
+                    '$className\nTested: $count time${count != 1 ? 's' : ''}',
+                    const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
       },
     );
   }

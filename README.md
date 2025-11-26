@@ -366,6 +366,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-**Built with ❤️ using Flutter, Firebase, and TensorFlow Lite**
-
 *Last Updated: October 27, 2024*

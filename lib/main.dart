@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:fl_chart/fl_chart.dart';
 import 'firebase_options.dart';
+import 'coffee_cup_info.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -217,6 +218,7 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
         'accuracy_rate': double.parse(confidence.toStringAsFixed(2)),
         'timestamp': DateTime.now().toUtc().toIso8601String(),
         'user_id': _currentUser!.uid,
+        'cup_variety': prediction, // Store the cup variety name
       });
       debugPrint('💾 Saved to Firebase successfully');
     } catch (e) {
@@ -266,35 +268,26 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
         title: const Text('☕ Scape - Coffee Cup Scanner'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.library_books),
+            tooltip: 'View Cup Varieties',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const CoffeeCupGalleryPage(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Status indicators
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatusCard(
-                    'Authentication',
-                    _currentUser != null,
-                    _currentUser != null ? 'Signed In' : 'Signing In...',
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildStatusCard(
-                    'Cup Varieties',
-                    _labelsLoaded,
-                    _labelsLoaded ? '${_labels.length} Cup Types' : 'Loading...',
-                  ),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 16),
-            
             // Image display
             Container(
               height: 250,
@@ -418,14 +411,27 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      _predictedClass!,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.brown,
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CoffeeCupDetailPage(
+                              cupName: _predictedClass!,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        _predictedClass!,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.brown,
+                          decoration: TextDecoration.underline,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
                     ),
                     if (_accuracy != null) ...[
                       const SizedBox(height: 12),
@@ -474,39 +480,7 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
     );
   }
 
-  Widget _buildStatusCard(String title, bool isReady, String subtitle) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isReady ? Colors.green.shade50 : Colors.orange.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isReady ? Colors.green : Colors.orange,
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            isReady ? Icons.check_circle : Icons.hourglass_empty,
-            color: isReady ? Colors.green : Colors.orange,
-            size: 20,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-          ),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 10,
-              color: isReady ? Colors.green.shade700 : Colors.orange.shade700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 }
 
 class _AccuracyChart extends StatelessWidget {
@@ -552,6 +526,7 @@ class _AccuracyChart extends StatelessWidget {
             entries.add({
               'accuracy_rate': (value['accuracy_rate'] as num?)?.toDouble() ?? 0.0,
               'timestamp': DateTime.tryParse(value['timestamp'] ?? '') ?? DateTime.now(),
+              'cup_variety': value['predicted_class'] ?? 'Unknown',
             });
           }
         });
@@ -574,75 +549,111 @@ class _AccuracyChart extends StatelessWidget {
         }
         
         return LineChart(
-          LineChartData(
-            minY: 0,
-            maxY: 100,
-            gridData: FlGridData(
-              show: true,
-              drawVerticalLine: true,
-              horizontalInterval: 20,
-              verticalInterval: 1,
-              getDrawingHorizontalLine: (value) {
-                return FlLine(
-                  color: Colors.grey.shade300,
-                  strokeWidth: 1,
-                );
-              },
-            ),
-            titlesData: FlTitlesData(
-              leftTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  reservedSize: 40,
-                  getTitlesWidget: (value, meta) {
-                    return Text(
-                      '${value.toInt()}%',
-                      style: const TextStyle(fontSize: 10),
-                    );
-                  },
-                ),
-              ),
-              bottomTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  reservedSize: 30,
-                  getTitlesWidget: (value, meta) {
-                    return Text(
-                      '${value.toInt() + 1}',
-                      style: const TextStyle(fontSize: 10),
-                    );
-                  },
-                ),
-              ),
-              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            ),
-            lineBarsData: [
-              LineChartBarData(
-                spots: spots,
-                isCurved: true,
-                color: Colors.brown,
-                barWidth: 3,
-                dotData: FlDotData(
-                  show: true,
-                  getDotPainter: (spot, percent, barData, index) {
-                    return FlDotCirclePainter(
-                      radius: 4,
+                LineChartData(
+                  minY: 0,
+                  maxY: 100,
+                  gridData: FlGridData(
+                    show: true,
+                    drawVerticalLine: true,
+                    horizontalInterval: 20,
+                    verticalInterval: 1,
+                    getDrawingHorizontalLine: (value) {
+                      return FlLine(
+                        color: Colors.grey.shade300,
+                        strokeWidth: 1,
+                      );
+                    },
+                  ),
+                  titlesData: FlTitlesData(
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 40,
+                        getTitlesWidget: (value, meta) {
+                          return Text(
+                            '${value.toInt()}%',
+                            style: const TextStyle(fontSize: 10),
+                          );
+                        },
+                      ),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 30,
+                        getTitlesWidget: (value, meta) {
+                          if (value.toInt() >= 0 && value.toInt() < entries.length) {
+                            final fullName = (entries[value.toInt()]['cup_variety'] as String)
+                                .split(' ')
+                                .first;
+                            final cupName = fullName.length >= 3 
+                                ? fullName.substring(0, 3) 
+                                : fullName;
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                cupName,
+                                style: const TextStyle(fontSize: 9),
+                              ),
+                            );
+                          }
+                          return const Text('');
+                        },
+                      ),
+                    ),
+                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  ),
+                  lineTouchData: LineTouchData(
+                    enabled: true,
+                    touchTooltipData: LineTouchTooltipData(
+                      getTooltipItems: (touchedSpots) {
+                        return touchedSpots.map((spot) {
+                          final index = spot.x.toInt();
+                          if (index >= 0 && index < entries.length) {
+                            final cupName = entries[index]['cup_variety'] as String;
+                            final accuracy = spot.y.toStringAsFixed(1);
+                            return LineTooltipItem(
+                              '$cupName\n$accuracy%',
+                              const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            );
+                          }
+                          return null;
+                        }).toList();
+                      },
+                    ),
+                  ),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: spots,
+                      isCurved: true,
                       color: Colors.brown,
-                      strokeWidth: 2,
-                      strokeColor: Colors.white,
-                    );
-                  },
+                      barWidth: 3,
+                      dotData: FlDotData(
+                        show: true,
+                        getDotPainter: (spot, percent, barData, index) {
+                          return FlDotCirclePainter(
+                            radius: 5,
+                            color: Colors.brown,
+                            strokeWidth: 2,
+                            strokeColor: Colors.white,
+                          );
+                        },
+                      ),
+                      belowBarData: BarAreaData(
+                        show: true,
+                        color: Colors.brown.withValues(alpha: 0.1),
+                      ),
+                    ),
+                  ],
                 ),
-                belowBarData: BarAreaData(
-                  show: true,
-                  color: Colors.brown.withValues(alpha: 0.1),
-                ),
-              ),
-            ],
-          ),
-        );
+              );
       },
     );
   }
 }
+

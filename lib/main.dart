@@ -298,11 +298,57 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
         'accuracy_rate': double.parse(confidence.toStringAsFixed(2)),
         'timestamp': DateTime.now().toUtc().toIso8601String(),
         'user_id': _currentUser!.uid,
-        'cup_variety': prediction, // Store the cup variety name
+        'cup_variety': prediction,
+        'validated': false, // Not yet validated
       });
       debugPrint('💾 Saved to Firebase successfully');
     } catch (e) {
       debugPrint('❌ Firebase save error: $e');
+    }
+  }
+
+  Future<void> _validatePrediction(bool isCorrect) async {
+    if (_currentUser == null || _predictedClass == null) return;
+
+    try {
+      // Save validation feedback
+      final ref = FirebaseDatabase.instance.ref('prediction_validations').push();
+      await ref.set({
+        'predicted_class': _predictedClass,
+        'is_correct': isCorrect,
+        'confidence': _accuracy,
+        'timestamp': DateTime.now().toUtc().toIso8601String(),
+        'user_id': _currentUser!.uid,
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(
+                  isCorrect ? Icons.check_circle : Icons.info,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    isCorrect
+                        ? 'Thank you! Prediction confirmed as correct.'
+                        : 'Thank you for the feedback! This helps improve our model.',
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: isCorrect ? Colors.green : Colors.orange,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+
+      debugPrint('✅ Validation saved: ${isCorrect ? "Correct" : "Wrong"}');
+    } catch (e) {
+      debugPrint('❌ Validation save error: $e');
     }
   }
 
@@ -534,14 +580,7 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
                 child: Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        const Color(0xFFFFF8E1),
-                        const Color(0xFFFFE0B2),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Column(
@@ -675,6 +714,75 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
                           ),
                         ),
                       ],
+                    ],
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Validation buttons
+              Card(
+                elevation: 3,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Is this prediction correct?',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => _validatePrediction(true),
+                              icon: const Icon(Icons.check_circle, size: 24),
+                              label: const Text(
+                                'Correct',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                elevation: 2,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => _validatePrediction(false),
+                              icon: const Icon(Icons.cancel, size: 24),
+                              label: const Text(
+                                'Wrong',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                elevation: 2,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -1269,6 +1377,7 @@ class _PredictionReport extends StatelessWidget {
           Icon(icon, size: 20, color: const Color(0xFF6F4E37)),
           const SizedBox(width: 12),
           Expanded(
+            flex: 2,
             child: Text(
               label,
               style: const TextStyle(
@@ -1278,15 +1387,20 @@ class _PredictionReport extends StatelessWidget {
               ),
             ),
           ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF8B4513),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF8B4513),
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+              textAlign: TextAlign.right,
             ),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
           ),
         ],
       ),

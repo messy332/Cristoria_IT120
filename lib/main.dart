@@ -7,6 +7,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:fl_chart/fl_chart.dart';
+import 'package:tflite_flutter/tflite_flutter.dart';
+import 'package:image/image.dart' as img;
 import 'firebase_options.dart';
 import 'coffee_cup_info.dart';
 
@@ -73,6 +75,7 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
   bool _loading = false;
   bool _labelsLoaded = false;
   User? _currentUser;
+  Interpreter? _interpreter;
 
   @override
   void initState() {
@@ -83,6 +86,25 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
   Future<void> _initializeApp() async {
     await _signInAnonymously();
     await _loadLabels();
+    await _loadModel();
+  }
+
+  Future<void> _loadModel() async {
+    try {
+      debugPrint('🔄 Loading TensorFlow Lite model...');
+      _interpreter = await Interpreter.fromAsset('assets/model_unquant.tflite');
+      debugPrint('✅ Model loaded successfully');
+      debugPrint('📊 Input shape: ${_interpreter!.getInputTensors()}');
+      debugPrint('📊 Output shape: ${_interpreter!.getOutputTensors()}');
+    } catch (e) {
+      debugPrint('❌ Error loading model: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _interpreter?.close();
+    super.dispose();
   }
 
   Future<void> _signInAnonymously() async {
@@ -164,33 +186,72 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
       return;
     }
 
+    if (_interpreter == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Model not loaded. Please restart the app.')),
+      );
+      return;
+    }
+
     setState(() => _loading = true);
 
     try {
       debugPrint('🔍 Starting coffee cup variety classification...');
       
-      // Simulate AI processing time
-      await Future.delayed(const Duration(seconds: 2));
-      
-      // Smart prediction based on image file properties
+      // Load and preprocess image
       final imageBytes = await _imageFile!.readAsBytes();
-      final imageSize = imageBytes.length;
+      img.Image? image = img.decodeImage(imageBytes);
       
-      // Use image properties to make a more realistic prediction
-      final random = Random(imageSize + DateTime.now().millisecondsSinceEpoch);
-      final labelIndex = random.nextInt(_labels.length);
-      final predictedLabel = _labels[labelIndex];
+      if (image == null) {
+        throw Exception('Failed to decode image');
+      }
       
-      // Generate realistic confidence based on "analysis"
-      double confidence = 70.0 + random.nextDouble() * 25.0; // 70-95%
+      // Resize image to model input size (typically 224x224 or 299x299)
+      // Adjust this based on your model's input requirements
+      final inputSize = 224;
+      img.Image resizedImage = img.copyResize(image, width: inputSize, height: inputSize);
       
-      // Add some variation based on image size (larger images = higher confidence)
-      if (imageSize > 500000) confidence += 5.0; // Large image bonus
-      if (imageSize < 100000) confidence -= 10.0; // Small image penalty
+      // Convert image to input tensor (normalized float values)
+      var input = List.generate(
+        inputSize,
+        (y) => List.generate(
+          inputSize,
+          (x) {
+            final pixel = resizedImage.getPixel(x, y);
+            return [
+              pixel.r / 255.0,  // Red channel normalized
+              pixel.g / 255.0,  // Green channel normalized
+              pixel.b / 255.0,  // Blue channel normalized
+            ];
+          },
+        ),
+      );
       
-      confidence = confidence.clamp(60.0, 98.0);
+      // Prepare output tensor
+      var output = List.filled(_labels.length, 0.0).reshape([1, _labels.length]);
+      
+      // Run inference
+      debugPrint('🤖 Running model inference...');
+      _interpreter!.run([input], output);
+      
+      // Get predictions
+      List<double> probabilities = List<double>.from(output[0]);
+      
+      // Find the class with highest probability
+      int maxIndex = 0;
+      double maxProb = probabilities[0];
+      for (int i = 1; i < probabilities.length; i++) {
+        if (probabilities[i] > maxProb) {
+          maxProb = probabilities[i];
+          maxIndex = i;
+        }
+      }
+      
+      final predictedLabel = _labels[maxIndex];
+      final confidence = maxProb * 100;
       
       debugPrint('🎯 Analysis complete: $predictedLabel (${confidence.toStringAsFixed(1)}%)');
+      debugPrint('📊 All probabilities: ${probabilities.map((p) => (p * 100).toStringAsFixed(1)).toList()}');
       
       setState(() {
         _predictedClass = predictedLabel;

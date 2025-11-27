@@ -19,9 +19,14 @@ class CoffeeCupGalleryPage extends StatelessWidget {
     ];
 
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Coffee Cup Varieties'),
-        backgroundColor: Colors.brown,
+        elevation: 0,
+        title: const Text(
+          'Coffee Cup Varieties',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: const Color(0xFF6F4E37),
         foregroundColor: Colors.white,
       ),
       body: ListView.builder(
@@ -30,22 +35,50 @@ class CoffeeCupGalleryPage extends StatelessWidget {
         itemBuilder: (context, index) {
           return Card(
             margin: const EdgeInsets.only(bottom: 12),
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Colors.brown.shade100,
-                child: Text(
-                  '${index + 1}',
-                  style: const TextStyle(
-                    color: Colors.brown,
-                    fontWeight: FontWeight.bold,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 8,
+              ),
+              leading: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFF6F4E37),
+                      const Color(0xFFA67B5B),
+                    ],
+                  ),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    '${index + 1}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
                   ),
                 ),
               ),
               title: Text(
                 cupVarieties[index],
-                style: const TextStyle(fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
               ),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              trailing: Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: Colors.brown.shade400,
+              ),
               onTap: () {
                 Navigator.push(
                   context,
@@ -77,9 +110,14 @@ class CoffeeCupDetailPage extends StatelessWidget {
     final cupInfo = _getCupInfo(cupName);
 
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: Text(cupName),
-        backgroundColor: Colors.brown,
+        elevation: 0,
+        title: Text(
+          cupName,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: const Color(0xFF6F4E37),
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
@@ -87,42 +125,55 @@ class CoffeeCupDetailPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              height: 200,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.brown.shade100,
-                borderRadius: BorderRadius.circular(12),
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.asset(
-                  _getImagePath(cupName),
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Icon(
-                      Icons.coffee,
-                      size: 80,
-                      color: Colors.brown,
-                    );
-                  },
+              child: Container(
+                height: 240,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.brown.shade50,
+                      Colors.orange.shade50,
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.asset(
+                    _getImagePath(cupName),
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Center(
+                        child: Icon(
+                          Icons.coffee,
+                          size: 80,
+                          color: Colors.brown.shade400,
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
             Text(
               cupName,
               style: const TextStyle(
-                fontSize: 24,
+                fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: Colors.brown,
+                color: Color(0xFF6F4E37),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             _buildInfoSection('Origin', cupInfo['origin']!),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             _buildInfoSection('Description', cupInfo['description']!),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             _buildInfoSection('Typical Use', cupInfo['use']!),
           ],
         ),
@@ -131,23 +182,57 @@ class CoffeeCupDetailPage extends StatelessWidget {
   }
 
   Widget _buildInfoSection(String title, String content) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.brown,
-          ),
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6F4E37).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    title == 'Origin'
+                        ? Icons.public
+                        : title == 'Description'
+                            ? Icons.description
+                            : Icons.coffee_maker,
+                    color: const Color(0xFF6F4E37),
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF6F4E37),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              content,
+              style: TextStyle(
+                fontSize: 16,
+                height: 1.6,
+                color: Colors.grey.shade800,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
-        Text(
-          content,
-          style: const TextStyle(fontSize: 16, height: 1.5),
-        ),
-      ],
+      ),
     );
   }
 

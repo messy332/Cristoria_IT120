@@ -29,9 +29,28 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Scape - Coffee Cup Variety Scanner',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.brown),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF6F4E37), // Coffee brown
+          primary: const Color(0xFF6F4E37),
+          secondary: const Color(0xFFA67B5B),
+        ),
         useMaterial3: true,
+        cardTheme: CardThemeData(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
       ),
       home: const CoffeeScannerPage(),
     );
@@ -226,51 +245,42 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
     }
   }
 
-  Future<void> _testFirebase() async {
-    if (_currentUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('❌ Not authenticated')),
-      );
-      return;
-    }
-
-    try {
-      final ref = FirebaseDatabase.instance.ref('coffee_predictions').push();
-      await ref.set({
-        'predicted_class': 'TEST_COFFEE',
-        'accuracy_rate': 95.0,
-        'timestamp': DateTime.now().toUtc().toIso8601String(),
-        'user_id': _currentUser!.uid,
-      });
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Firebase test successful!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('❌ Firebase test failed: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Firebase test failed: $e')),
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('☕ Scape - Coffee Cup Scanner'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        elevation: 0,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                '☕',
+                style: TextStyle(fontSize: 20),
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Scape',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 24,
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF6F4E37),
+        foregroundColor: Colors.white,
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.library_books),
+            icon: const Icon(Icons.library_books_outlined),
             tooltip: 'View Cup Varieties',
             onPressed: () {
               Navigator.push(
@@ -284,43 +294,73 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Image display
-            Container(
-              height: 250,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300),
+            // Image display card
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
-              child: _imageFile != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.file(
-                        _imageFile!,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
+              child: Container(
+                height: 280,
+                decoration: BoxDecoration(
+                  gradient: _imageFile == null
+                      ? LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.brown.shade50,
+                            Colors.orange.shade50,
+                          ],
+                        )
+                      : null,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: _imageFile != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.file(
+                          _imageFile!,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                        ),
+                      )
+                    : Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.coffee_outlined,
+                              size: 64,
+                              color: Colors.brown.shade300,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Select a Coffee Cup Image',
+                              style: TextStyle(
+                                color: Colors.brown.shade600,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Use camera or gallery',
+                              style: TextStyle(
+                                color: Colors.brown.shade400,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    )
-                  : const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.camera_alt, size: 48, color: Colors.grey),
-                          SizedBox(height: 8),
-                          Text(
-                            'Select a coffee cup variety image',
-                            style: TextStyle(color: Colors.grey, fontSize: 16),
-                          ),
-                        ],
-                      ),
-                    ),
+              ),
             ),
             
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             
             // Action buttons
             Row(
@@ -328,10 +368,19 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () => _pickImage(ImageSource.camera),
-                    icon: const Icon(Icons.camera_alt),
-                    label: const Text('Camera'),
+                    icon: const Icon(Icons.camera_alt_outlined),
+                    label: const Text(
+                      'Camera',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      backgroundColor: const Color(0xFF6F4E37),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      elevation: 2,
                     ),
                   ),
                 ),
@@ -339,141 +388,281 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () => _pickImage(ImageSource.gallery),
-                    icon: const Icon(Icons.photo_library),
-                    label: const Text('Gallery'),
+                    icon: const Icon(Icons.photo_library_outlined),
+                    label: const Text(
+                      'Gallery',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      backgroundColor: const Color(0xFFA67B5B),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      elevation: 2,
                     ),
                   ),
                 ),
+                if (_imageFile != null) ...[
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _imageFile = null;
+                        _predictedClass = null;
+                        _accuracy = null;
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red.shade400,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                      elevation: 2,
+                    ),
+                    child: const Icon(Icons.close, size: 24),
+                  ),
+                ],
               ],
             ),
             
-            const SizedBox(height: 12),
-            
-            // Test Firebase button
-            ElevatedButton.icon(
-              onPressed: _testFirebase,
-              icon: const Icon(Icons.cloud_upload),
-              label: const Text('Test Firebase Connection'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-            ),
-            
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             
             // Classify button
-            ElevatedButton.icon(
-              onPressed: _loading ? null : _classifyImage,
-              icon: _loading 
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Icon(Icons.psychology),
-              label: Text(_loading ? 'Analyzing Cup Variety...' : 'Analyze Coffee Cup Variety'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.brown,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _loading ? null : _classifyImage,
+                icon: _loading 
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 3,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.analytics_outlined, size: 24),
+                label: Text(
+                  _loading ? 'Analyzing...' : 'Analyze Coffee Cup',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF8B4513),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  elevation: 4,
+                  disabledBackgroundColor: Colors.brown.shade300,
+                ),
               ),
             ),
             
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
             
             // Results
             if (_predictedClass != null) ...[
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.brown.shade50, Colors.orange.shade50],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.brown.shade200),
+              Card(
+                elevation: 6,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                child: Column(
-                  children: [
-                    const Icon(Icons.coffee, size: 40, color: Colors.brown),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Coffee Cup Variety Detected:',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey,
-                        fontWeight: FontWeight.w500,
-                      ),
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFFFFF8E1),
+                        const Color(0xFFFFE0B2),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    const SizedBox(height: 8),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => CoffeeCupDetailPage(
-                              cupName: _predictedClass!,
-                            ),
-                          ),
-                        );
-                      },
-                      child: Text(
-                        _predictedClass!,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.brown,
-                          decoration: TextDecoration.underline,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    if (_accuracy != null) ...[
-                      const SizedBox(height: 12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.green.shade100,
-                          borderRadius: BorderRadius.circular(20),
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.brown.withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        child: Text(
-                          'Confidence: ${_accuracy!.toStringAsFixed(1)}%',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.green.shade700,
-                            fontWeight: FontWeight.w600,
+                        child: const Icon(
+                          Icons.coffee,
+                          size: 48,
+                          color: Color(0xFF6F4E37),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Detection Result',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.brown.shade600,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CoffeeCupDetailPage(
+                                cupName: _predictedClass!,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.8),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                _predictedClass!,
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF6F4E37),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Tap for details',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.brown.shade400,
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.arrow_forward_ios,
+                                    size: 12,
+                                    color: Colors.brown.shade400,
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
                       ),
+                      if (_accuracy != null) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.green.shade400,
+                                Colors.green.shade600,
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(25),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.green.withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.verified,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Confidence: ${_accuracy!.toStringAsFixed(1)}%',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
               
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
             ],
             
             // Chart section
-            const Divider(thickness: 2),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Prediction History',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.brown,
-                  ),
+            Divider(thickness: 1, color: Colors.brown.shade200),
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFF6F4E37).withOpacity(0.1),
+                    const Color(0xFFA67B5B).withOpacity(0.1),
+                  ],
                 ),
-                IconButton(
-                  icon: const Icon(Icons.refresh, color: Colors.brown),
-                  onPressed: () async {
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.bar_chart_rounded,
+                        color: const Color(0xFF6F4E37),
+                        size: 28,
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Prediction History',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF6F4E37),
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh_rounded),
+                    color: const Color(0xFF6F4E37),
+                    tooltip: 'Refresh data',
+                    onPressed: () async {
+                    final scaffoldMessenger = ScaffoldMessenger.of(context);
                     try {
                       final snapshot = await FirebaseDatabase.instance
                           .ref('coffee_predictions')
@@ -481,7 +670,7 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
                       debugPrint('🔍 Manual fetch - exists: ${snapshot.exists}');
                       debugPrint('🔍 Manual fetch - value: ${snapshot.value}');
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        scaffoldMessenger.showSnackBar(
                           SnackBar(
                             content: Text(
                               snapshot.exists 
@@ -494,20 +683,33 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
                     } catch (e) {
                       debugPrint('🔍 Manual fetch error: $e');
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        scaffoldMessenger.showSnackBar(
                           SnackBar(content: Text('Error: $e')),
                         );
                       }
                     }
                   },
                 ),
-              ],
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 250,
-              child: _AccuracyChart(),
+            const SizedBox(height: 20),
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: SizedBox(
+                  height: 250,
+                  child: _AccuracyChart(),
+                ),
+              ),
             ),
+            const SizedBox(height: 20),
+            _PredictionReport(),
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -655,47 +857,38 @@ class _AccuracyChart extends StatelessWidget {
         final totalCount = classCounts.values.reduce((a, b) => a + b);
         debugPrint('📊 Total predictions counted: $totalCount');
         
-        // Create bar chart data
-        final barGroups = <BarChartGroupData>[];
+        // Create line chart data
+        final spots = <FlSpot>[];
         int maxCount = 0;
         
         for (int i = 0; i < _allClasses.length; i++) {
           final count = classCounts[_allClasses[i]] ?? 0;
           if (count > maxCount) maxCount = count;
-          
-          barGroups.add(
-            BarChartGroupData(
-              x: i,
-              barRods: [
-                BarChartRodData(
-                  toY: count.toDouble(),
-                  color: Colors.brown,
-                  width: 16,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(4),
-                    topRight: Radius.circular(4),
-                  ),
-                ),
-              ],
-            ),
-          );
+          spots.add(FlSpot(i.toDouble(), count.toDouble()));
         }
         
         // Calculate appropriate interval for Y-axis
         final yInterval = maxCount <= 5 ? 1.0 : (maxCount / 5).ceilToDouble();
         final adjustedMaxY = ((maxCount / yInterval).ceil() + 1) * yInterval;
         
-        return BarChart(
-          BarChartData(
+        return LineChart(
+          LineChartData(
             maxY: adjustedMaxY,
             minY: 0,
             gridData: FlGridData(
               show: true,
-              drawVerticalLine: false,
+              drawVerticalLine: true,
               horizontalInterval: yInterval,
+              verticalInterval: 1,
               getDrawingHorizontalLine: (value) {
                 return FlLine(
                   color: Colors.grey.shade300,
+                  strokeWidth: 1,
+                );
+              },
+              getDrawingVerticalLine: (value) {
+                return FlLine(
+                  color: Colors.grey.shade200,
                   strokeWidth: 1,
                 );
               },
@@ -704,13 +897,17 @@ class _AccuracyChart extends StatelessWidget {
               leftTitles: AxisTitles(
                 sideTitles: SideTitles(
                   showTitles: true,
-                  reservedSize: 30,
+                  reservedSize: 35,
                   interval: yInterval,
                   getTitlesWidget: (value, meta) {
                     if (value % yInterval == 0) {
                       return Text(
                         value.toInt().toString(),
-                        style: const TextStyle(fontSize: 10),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF6F4E37),
+                        ),
                       );
                     }
                     return const Text('');
@@ -731,7 +928,11 @@ class _AccuracyChart extends StatelessWidget {
                           angle: -0.5,
                           child: Text(
                             shortName,
-                            style: const TextStyle(fontSize: 9),
+                            style: const TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF6F4E37),
+                            ),
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -744,22 +945,64 @@ class _AccuracyChart extends StatelessWidget {
               rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
               topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
             ),
-            borderData: FlBorderData(show: false),
-            barGroups: barGroups,
-            barTouchData: BarTouchData(
+            borderData: FlBorderData(
+              show: true,
+              border: Border(
+                left: BorderSide(color: Colors.grey.shade400, width: 1),
+                bottom: BorderSide(color: Colors.grey.shade400, width: 1),
+              ),
+            ),
+            lineBarsData: [
+              LineChartBarData(
+                spots: spots,
+                isCurved: true,
+                color: const Color(0xFF6F4E37),
+                barWidth: 3,
+                isStrokeCapRound: true,
+                dotData: FlDotData(
+                  show: true,
+                  getDotPainter: (spot, percent, barData, index) {
+                    return FlDotCirclePainter(
+                      radius: 5,
+                      color: const Color(0xFF8B4513),
+                      strokeWidth: 2,
+                      strokeColor: Colors.white,
+                    );
+                  },
+                ),
+                belowBarData: BarAreaData(
+                  show: true,
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFF6F4E37).withOpacity(0.3),
+                      const Color(0xFF6F4E37).withOpacity(0.05),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+              ),
+            ],
+            lineTouchData: LineTouchData(
               enabled: true,
-              touchTooltipData: BarTouchTooltipData(
-                getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                  final className = _allClasses[group.x.toInt()];
-                  final count = rod.toY.toInt();
-                  return BarTooltipItem(
-                    '$className\nTested: $count time${count != 1 ? 's' : ''}',
-                    const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  );
+              touchTooltipData: LineTouchTooltipData(
+                getTooltipItems: (touchedSpots) {
+                  return touchedSpots.map((spot) {
+                    final index = spot.x.toInt();
+                    if (index >= 0 && index < _allClasses.length) {
+                      final className = _allClasses[index];
+                      final count = spot.y.toInt();
+                      return LineTooltipItem(
+                        '$className\nTested: $count time${count != 1 ? 's' : ''}',
+                        const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      );
+                    }
+                    return null;
+                  }).toList();
                 },
               ),
             ),
@@ -770,3 +1013,222 @@ class _AccuracyChart extends StatelessWidget {
   }
 }
 
+
+
+class _PredictionReport extends StatelessWidget {
+  final DatabaseReference _ref =
+      FirebaseDatabase.instance.ref('coffee_predictions');
+
+  final List<String> _allClasses = [
+    'Turkish Coffee Cup',
+    'Japanese Matcha Chawan',
+    'Vietnam Egg Coffee Cup',
+    'Espresso Demitasse Cup',
+    'Double-Walled Insulated Mug',
+    'Reusable Stainless Steel Travel Cup',
+    'Cappucino Cup(Italian Style)',
+    'Latte Glass(Irish Coffee Style)',
+    'Yixing Clay Coffee Cup',
+    'Ceramic Pour-Over Coffee Mug',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<DatabaseEvent>(
+      stream: _ref.onValue,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
+          return const SizedBox.shrink();
+        }
+
+        final data = snapshot.data!.snapshot.value;
+        if (data is! Map) {
+          return const SizedBox.shrink();
+        }
+
+        // Mapping for old truncated labels to new full labels
+        final labelMapping = {
+          '0 Turkish Coff...': 'Turkish Coffee Cup',
+          '1 Japanese Mat...': 'Japanese Matcha Chawan',
+          '2 Vietnam Egg ...': 'Vietnam Egg Coffee Cup',
+          '3 Espresso Dem...': 'Espresso Demitasse Cup',
+          '4 Double-Walle...': 'Double-Walled Insulated Mug',
+          '5 Reusable Sta...': 'Reusable Stainless Steel Travel Cup',
+          '6 Cappucino Cu...': 'Cappucino Cup(Italian Style)',
+          '7 Latte Glass(...': 'Latte Glass(Irish Coffee Style)',
+          '8 Yixing Clay ...': 'Yixing Clay Coffee Cup',
+          '9 Ceramic Pour...': 'Ceramic Pour-Over Coffee Mug',
+        };
+
+        // Count occurrences and calculate stats
+        final classCounts = <String, int>{};
+        final accuracies = <double>[];
+        int totalPredictions = 0;
+
+        for (var className in _allClasses) {
+          classCounts[className] = 0;
+        }
+
+        data.forEach((key, value) {
+          if (value is Map) {
+            var cupVariety = value['predicted_class'] ?? 'Unknown';
+            final accuracy = (value['accuracy_rate'] as num?)?.toDouble();
+
+            // Skip test entries
+            if (cupVariety == 'TEST' || cupVariety == 'TEST_COFFEE') {
+              return;
+            }
+
+            // Map old labels to new labels
+            if (labelMapping.containsKey(cupVariety)) {
+              cupVariety = labelMapping[cupVariety]!;
+            }
+
+            if (classCounts.containsKey(cupVariety)) {
+              classCounts[cupVariety] = classCounts[cupVariety]! + 1;
+              totalPredictions++;
+              if (accuracy != null) {
+                accuracies.add(accuracy);
+              }
+            }
+          }
+        });
+
+        if (totalPredictions == 0) {
+          return const SizedBox.shrink();
+        }
+
+        // Find most and least tested
+        String mostTested = '';
+        String leastTested = '';
+        int maxCount = 0;
+        int minCount = totalPredictions;
+
+        classCounts.forEach((className, count) {
+          if (count > 0) {
+            if (count > maxCount) {
+              maxCount = count;
+              mostTested = className;
+            }
+            if (count < minCount) {
+              minCount = count;
+              leastTested = className;
+            }
+          }
+        });
+
+        // Calculate average accuracy
+        final avgAccuracy = accuracies.isEmpty
+            ? 0.0
+            : accuracies.reduce((a, b) => a + b) / accuracies.length;
+
+        return Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.brown.withOpacity(0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.assessment,
+                        color: Color(0xFF6F4E37),
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Prediction Summary',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF6F4E37),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                _buildStatRow(
+                  'Total Predictions',
+                  totalPredictions.toString(),
+                  Icons.analytics_outlined,
+                ),
+                const SizedBox(height: 12),
+                _buildStatRow(
+                  'Average Accuracy',
+                  '${avgAccuracy.toStringAsFixed(1)}%',
+                  Icons.percent,
+                ),
+                const SizedBox(height: 12),
+                _buildStatRow('Most Tested', mostTested, Icons.trending_up),
+                const SizedBox(height: 12),
+                _buildStatRow(
+                  'Least Tested',
+                  leastTested.isEmpty ? 'N/A' : leastTested,
+                  Icons.trending_down,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStatRow(String label, String value, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: const Color(0xFF6F4E37)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF6F4E37),
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF8B4513),
+            ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+        ],
+      ),
+    );
+  }
+}

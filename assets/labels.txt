@@ -1,10 +1,10 @@
-0 Turkish Coffee Cup
-1 Japanese Matcha Chawan
-2 Vietnam Egg Coffee Cup
-3 Espresso Demitasse Cup
-4 Double-Walled Insulated Mug
-5 Reusable Stainless Steel Travel Cup
-6 Cappucino Cup(Italian Style)
-7 Latte Glass(Irish Coffee Style)
-8 Yixing Clay Coffee Cup
-9 Ceramic Pour-Over Coffee Mug
+Turkish Coffee Cup
+Japanese Matcha Chawan
+Vietnam Egg Coffee Cup
+Espresso Demitasse Cup
+Double-Walled Insulated Mug
+Reusable Stainless Steel Travel Cup
+Cappucino Cup(Italian Style)
+Latte Glass(Irish Coffee Style)
+Yixing Clay Coffee Cup
+Ceramic Pour-Over Coffee Mug

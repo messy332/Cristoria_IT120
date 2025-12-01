@@ -400,14 +400,21 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
       if (secondMaxIndex >= 0) {
         debugPrint('🥈 2nd prediction: ${_labels[secondMaxIndex]} (${secondConfidence.toStringAsFixed(1)}%)');
       }
-      debugPrint('📊 All probabilities: ${probabilities.asMap().entries.map((e) => '${_labels[e.key]}: ${(e.value * 100).toStringAsFixed(1)}%').join(', ')}');
+      
+      // Show ALL predictions in a clear format
+      debugPrint('📊 === ALL CLASS PREDICTIONS ===');
+      for (int i = 0; i < probabilities.length; i++) {
+        String emoji = i == maxIndex ? '🥇' : (i == secondMaxIndex ? '🥈' : '  ');
+        debugPrint('$emoji ${i + 1}. ${_labels[i]}: ${(probabilities[i] * 100).toStringAsFixed(2)}%');
+      }
+      debugPrint('📊 ================================');
       
       // Validation checks for unknown objects
-      // Very lenient thresholds - trust the model
+      // VERY LENIENT thresholds - trust the Teachable Machine model
       
-      const double confidenceThreshold = 25.0; // Minimum 25% confidence
-      const double marginThreshold = 10.0; // Minimum 10% gap from 2nd place
-      const double absoluteMinimum = 0.20; // Must be at least 20% confident
+      const double confidenceThreshold = 15.0; // Minimum 15% confidence (was 25%)
+      const double marginThreshold = 5.0; // Minimum 5% gap from 2nd place (was 10%)
+      const double absoluteMinimum = 0.10; // Must be at least 10% confident (was 20%)
       
       double margin = confidence - secondConfidence;
       
@@ -439,18 +446,19 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
       
       bool isLowConfidence = confidence < confidenceThreshold;
       bool isLowMargin = margin < marginThreshold;
-      bool isUniform = normalizedEntropy > 0.90; // High entropy = confused
+      bool isUniform = normalizedEntropy > 0.95; // High entropy = confused (was 0.90)
       bool isTooWeak = maxProb < absoluteMinimum;
-      bool isLowVariance = stdDev < 0.08; // Low variance = all classes similar
+      bool isLowVariance = stdDev < 0.05; // Low variance = all classes similar (was 0.08)
       bool failedVisualCheck = false; // Disabled - trust the model
       
       debugPrint('📊 Validation checks:');
-      debugPrint('   - Low confidence (<25%): $isLowConfidence');
-      debugPrint('   - Low margin (<10%): $isLowMargin');
-      debugPrint('   - Uniform distribution (>90%): $isUniform');
-      debugPrint('   - Too weak (<20%): $isTooWeak');
-      debugPrint('   - Low variance (<0.08): $isLowVariance');
+      debugPrint('   - Low confidence (<${confidenceThreshold}%): $isLowConfidence (actual: ${confidence.toStringAsFixed(1)}%)');
+      debugPrint('   - Low margin (<${marginThreshold}%): $isLowMargin (actual: ${margin.toStringAsFixed(1)}%)');
+      debugPrint('   - Uniform distribution (>95%): $isUniform (actual: ${(normalizedEntropy * 100).toStringAsFixed(1)}%)');
+      debugPrint('   - Too weak (<${absoluteMinimum * 100}%): $isTooWeak');
+      debugPrint('   - Low variance (<0.05): $isLowVariance (actual: ${stdDev.toStringAsFixed(4)})');
       debugPrint('   - Visual check: DISABLED (trusting model)');
+
       
       if (isLowConfidence || isLowMargin || isUniform || isTooWeak || isLowVariance || failedVisualCheck) {
         // Low confidence - not a coffee cup or unknown object

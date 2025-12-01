@@ -261,7 +261,7 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
       debugPrint('📊 All probabilities: ${probabilities.map((p) => (p * 100).toStringAsFixed(1)).toList()}');
       
       // Check if confidence is too low (not a trained object)
-      const double confidenceThreshold = 70.0; // Minimum 70% confidence for valid prediction
+      const double confidenceThreshold = 85.0; // Minimum 85% confidence for valid prediction
       
       // Additional check: If second highest probability is too close, it's uncertain
       List<double> sortedProbs = List.from(probabilities)..sort((a, b) => b.compareTo(a));
@@ -270,7 +270,7 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
       
       debugPrint('📊 Confidence margin: ${margin.toStringAsFixed(1)}% (difference from 2nd choice)');
       
-      if (confidence < confidenceThreshold || margin < 20.0) {
+      if (confidence < confidenceThreshold || margin < 30.0) {
         // Low confidence - not a coffee cup or unknown object
         setState(() {
           _predictedClass = 'Unknown Object';

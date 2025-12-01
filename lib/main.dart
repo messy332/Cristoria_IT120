@@ -206,33 +206,41 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
         throw Exception('Failed to decode image');
       }
       
-      // Resize image to model input size (typically 224x224 or 299x299)
-      // Adjust this based on your model's input requirements
+      // Teachable Machine uses 224x224 input size
       final inputSize = 224;
-      img.Image resizedImage = img.copyResize(image, width: inputSize, height: inputSize);
+      img.Image resizedImage = img.copyResize(
+        image,
+        width: inputSize,
+        height: inputSize,
+        interpolation: img.Interpolation.linear,
+      );
       
-      // Convert image to input tensor (normalized float values)
+      // Teachable Machine expects input shape: [1, 224, 224, 3]
+      // Values normalized to 0-1 range
       var input = List.generate(
-        inputSize,
-        (y) => List.generate(
+        1,
+        (batch) => List.generate(
           inputSize,
-          (x) {
-            final pixel = resizedImage.getPixel(x, y);
-            return [
-              pixel.r / 255.0,  // Red channel normalized
-              pixel.g / 255.0,  // Green channel normalized
-              pixel.b / 255.0,  // Blue channel normalized
-            ];
-          },
+          (y) => List.generate(
+            inputSize,
+            (x) {
+              final pixel = resizedImage.getPixel(x, y);
+              return [
+                pixel.r / 255.0,  // Red channel (0-1)
+                pixel.g / 255.0,  // Green channel (0-1)
+                pixel.b / 255.0,  // Blue channel (0-1)
+              ];
+            },
+          ),
         ),
       );
       
-      // Prepare output tensor
-      var output = List.filled(_labels.length, 0.0).reshape([1, _labels.length]);
+      // Prepare output tensor: [1, number_of_classes]
+      var output = List.generate(1, (_) => List.filled(_labels.length, 0.0));
       
       // Run inference
       debugPrint('🤖 Running model inference...');
-      _interpreter!.run([input], output);
+      _interpreter!.run(input, output);
       
       // Get predictions
       List<double> probabilities = List<double>.from(output[0]);
@@ -247,28 +255,66 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
         }
       }
       
-      final predictedLabel = _labels[maxIndex];
       final confidence = maxProb * 100;
       
-      debugPrint('🎯 Analysis complete: $predictedLabel (${confidence.toStringAsFixed(1)}%)');
+      debugPrint('🎯 Analysis complete: ${_labels[maxIndex]} (${confidence.toStringAsFixed(1)}%)');
       debugPrint('📊 All probabilities: ${probabilities.map((p) => (p * 100).toStringAsFixed(1)).toList()}');
       
-      setState(() {
-        _predictedClass = predictedLabel;
-        _accuracy = confidence;
-      });
-
-      // Save to Firebase
-      await _saveToFirebase(predictedLabel, confidence);
+      // Check if confidence is too low (not a trained object)
+      const double confidenceThreshold = 50.0; // Minimum 50% confidence
       
-      // Show success message
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✅ Detected: $predictedLabel'),
-            backgroundColor: Colors.green,
-          ),
-        );
+      if (confidence < confidenceThreshold) {
+        // Low confidence - not a coffee cup or unknown object
+        setState(() {
+          _predictedClass = 'Unknown Object';
+          _accuracy = 0.0; // Set to 0% for unknown objects
+        });
+        
+        // Save to Firebase with 0% accuracy for tracking
+        await _saveToFirebase('Unknown Object', 0.0);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.warning_amber, color: Colors.white),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'This does not appear to be a coffee cup from our trained classes.',
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+        
+        debugPrint('⚠️ Low confidence: Object not recognized - Saved as Unknown (0%)');
+      } else {
+        // Good confidence - valid prediction
+        final predictedLabel = _labels[maxIndex];
+        
+        setState(() {
+          _predictedClass = predictedLabel;
+          _accuracy = confidence;
+        });
+
+        // Save to Firebase with actual confidence
+        await _saveToFirebase(predictedLabel, confidence);
+        
+        // Show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✅ Detected: $predictedLabel'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       }
       
     } catch (e) {
@@ -299,56 +345,12 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
         'timestamp': DateTime.now().toUtc().toIso8601String(),
         'user_id': _currentUser!.uid,
         'cup_variety': prediction,
-        'validated': false, // Not yet validated
+        'confidence': confidence,
+        'is_valid': prediction != 'Unknown Object', // Track if it's a valid prediction
       });
-      debugPrint('💾 Saved to Firebase successfully');
+      debugPrint('💾 Saved to Firebase: $prediction (${confidence.toStringAsFixed(1)}%)');
     } catch (e) {
       debugPrint('❌ Firebase save error: $e');
-    }
-  }
-
-  Future<void> _validatePrediction(bool isCorrect) async {
-    if (_currentUser == null || _predictedClass == null) return;
-
-    try {
-      // Save validation feedback
-      final ref = FirebaseDatabase.instance.ref('prediction_validations').push();
-      await ref.set({
-        'predicted_class': _predictedClass,
-        'is_correct': isCorrect,
-        'confidence': _accuracy,
-        'timestamp': DateTime.now().toUtc().toIso8601String(),
-        'user_id': _currentUser!.uid,
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(
-                  isCorrect ? Icons.check_circle : Icons.info,
-                  color: Colors.white,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    isCorrect
-                        ? 'Thank you! Prediction confirmed as correct.'
-                        : 'Thank you for the feedback! This helps improve our model.',
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: isCorrect ? Colors.green : Colors.orange,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-
-      debugPrint('✅ Validation saved: ${isCorrect ? "Correct" : "Wrong"}');
-    } catch (e) {
-      debugPrint('❌ Validation save error: $e');
     }
   }
 
@@ -616,56 +618,90 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
                       ),
                       const SizedBox(height: 12),
                       InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CoffeeCupDetailPage(
-                                cupName: _predictedClass!,
-                              ),
-                            ),
-                          );
-                        },
+                        onTap: _predictedClass == 'Unknown Object'
+                            ? null
+                            : () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => CoffeeCupDetailPage(
+                                      cupName: _predictedClass!,
+                                    ),
+                                  ),
+                                );
+                              },
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.8),
+                            color: _predictedClass == 'Unknown Object'
+                                ? Colors.orange.shade50
+                                : Colors.white.withOpacity(0.8),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Column(
                             children: [
-                              Text(
-                                _predictedClass!,
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF6F4E37),
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 4),
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Text(
-                                    'Tap for details',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.brown.shade400,
-                                      fontStyle: FontStyle.italic,
+                                  if (_predictedClass == 'Unknown Object')
+                                    Icon(
+                                      Icons.help_outline,
+                                      color: Colors.orange.shade700,
+                                      size: 24,
                                     ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Icon(
-                                    Icons.arrow_forward_ios,
-                                    size: 12,
-                                    color: Colors.brown.shade400,
+                                  if (_predictedClass == 'Unknown Object')
+                                    const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      _predictedClass!,
+                                      style: TextStyle(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.bold,
+                                        color: _predictedClass == 'Unknown Object'
+                                            ? Colors.orange.shade700
+                                            : const Color(0xFF6F4E37),
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
                                   ),
                                 ],
                               ),
+                              if (_predictedClass != 'Unknown Object') ...[
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Tap for details',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.brown.shade400,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      Icons.arrow_forward_ios,
+                                      size: 12,
+                                      color: Colors.brown.shade400,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                              if (_predictedClass == 'Unknown Object') ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  'This image does not match any trained coffee cup class',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.orange.shade600,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -679,10 +715,15 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
                           ),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [
-                                Colors.green.shade400,
-                                Colors.green.shade600,
-                              ],
+                              colors: _predictedClass == 'Unknown Object'
+                                  ? [
+                                      Colors.orange.shade400,
+                                      Colors.orange.shade600,
+                                    ]
+                                  : [
+                                      Colors.green.shade400,
+                                      Colors.green.shade600,
+                                    ],
                             ),
                             borderRadius: BorderRadius.circular(25),
                             boxShadow: [
@@ -714,75 +755,6 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
                           ),
                         ),
                       ],
-                    ],
-                  ),
-                ),
-              ),
-              
-              const SizedBox(height: 16),
-              
-              // Validation buttons
-              Card(
-                elevation: 3,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Is this prediction correct?',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade700,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () => _validatePrediction(true),
-                              icon: const Icon(Icons.check_circle, size: 24),
-                              label: const Text(
-                                'Correct',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                elevation: 2,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () => _validatePrediction(false),
-                              icon: const Icon(Icons.cancel, size: 24),
-                              label: const Text(
-                                'Wrong',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                elevation: 2,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
                     ],
                   ),
                 ),

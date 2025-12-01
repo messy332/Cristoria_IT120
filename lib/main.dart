@@ -171,6 +171,174 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
     }
   }
 
+  /// Analyzes image characteristics to determine if it looks like a coffee cup
+  /// Returns a score from 0.0 (definitely not a cup) to 1.0 (likely a cup)
+  /// ALL checks must pass to get a good score
+  Future<double> _analyzeImageCharacteristics(img.Image image) async {
+    debugPrint('🔬 Analyzing image characteristics...');
+    
+    int passedChecks = 0;
+    const int totalChecks = 3;
+    
+    // 1. Check color distribution - coffee cups typically have distinct colors
+    Map<String, int> colorRegions = {
+      'brown': 0,
+      'white': 0,
+      'black': 0,
+      'ceramic': 0,
+      'colored': 0,
+      'skin': 0,
+      'other': 0,
+    };
+    
+    int sampleSize = 0;
+    for (int y = 0; y < image.height; y += 4) {
+      for (int x = 0; x < image.width; x += 4) {
+        final pixel = image.getPixel(x, y);
+        int r = pixel.r.toInt();
+        int g = pixel.g.toInt();
+        int b = pixel.b.toInt();
+        
+        sampleSize++;
+        
+        // Categorize colors more precisely
+        if (r > 200 && g > 200 && b > 200) {
+          colorRegions['white'] = colorRegions['white']! + 1;
+        } else if (r < 50 && g < 50 && b < 50) {
+          colorRegions['black'] = colorRegions['black']! + 1;
+        } else if (r > 180 && g > 140 && b > 100 && r > g && g > b) {
+          // Skin tone detection (reject hands, faces)
+          colorRegions['skin'] = colorRegions['skin']! + 1;
+        } else if (r > 100 && r > g && r > b && (r - g) < 80 && g > 50) {
+          // Brown/coffee colors
+          colorRegions['brown'] = colorRegions['brown']! + 1;
+        } else if (r > 150 && g > 150 && b > 150 && (r - g).abs() < 40) {
+          // Ceramic/pottery colors
+          colorRegions['ceramic'] = colorRegions['ceramic']! + 1;
+        } else if ((r - g).abs() > 40 || (g - b).abs() > 40) {
+          // Distinct colors (painted cups)
+          colorRegions['colored'] = colorRegions['colored']! + 1;
+        } else {
+          colorRegions['other'] = colorRegions['other']! + 1;
+        }
+      }
+    }
+    
+    // Calculate percentages
+    double brownPercent = (colorRegions['brown']! / sampleSize) * 100;
+    double whitePercent = (colorRegions['white']! / sampleSize) * 100;
+    double ceramicPercent = (colorRegions['ceramic']! / sampleSize) * 100;
+    double coloredPercent = (colorRegions['colored']! / sampleSize) * 100;
+    double skinPercent = (colorRegions['skin']! / sampleSize) * 100;
+    
+    debugPrint('🎨 Color analysis:');
+    debugPrint('   Brown=${brownPercent.toStringAsFixed(1)}%, White=${whitePercent.toStringAsFixed(1)}%, Ceramic=${ceramicPercent.toStringAsFixed(1)}%');
+    debugPrint('   Colored=${coloredPercent.toStringAsFixed(1)}%, Skin=${skinPercent.toStringAsFixed(1)}%');
+    
+    // STRICT: Reject if too much skin tone (hands, faces)
+    if (skinPercent > 15) {
+      debugPrint('❌ Color check FAILED - Too much skin tone detected (${skinPercent.toStringAsFixed(1)}%)');
+      return 0.0; // Immediate rejection
+    }
+    
+    // Coffee cups must have cup-like colors (brown, white, ceramic, or distinct colors)
+    double cupLikeColors = brownPercent + whitePercent + ceramicPercent + coloredPercent;
+    if (cupLikeColors > 40) {
+      passedChecks++;
+      debugPrint('✅ Color check passed (cup-like colors: ${cupLikeColors.toStringAsFixed(1)}%)');
+    } else {
+      debugPrint('❌ Color check failed - Not enough cup-like colors (${cupLikeColors.toStringAsFixed(1)}%)');
+    }
+    
+    // 2. Check edge density and structure - cups have defined edges
+    int strongEdges = 0;
+    int totalEdgeChecks = 0;
+    
+    for (int y = 2; y < image.height - 2; y += 3) {
+      for (int x = 2; x < image.width - 2; x += 3) {
+        final center = image.getPixel(x, y);
+        final right = image.getPixel(x + 2, y);
+        final bottom = image.getPixel(x, y + 2);
+        final left = image.getPixel(x - 2, y);
+        final top = image.getPixel(x, y - 2);
+        
+        // Calculate gradient in all directions
+        int diffR = ((center.r - right.r).abs() + (center.r - left.r).abs() + 
+                     (center.r - top.r).abs() + (center.r - bottom.r).abs()).toInt();
+        int diffG = ((center.g - right.g).abs() + (center.g - left.g).abs() + 
+                     (center.g - top.g).abs() + (center.g - bottom.g).abs()).toInt();
+        int diffB = ((center.b - right.b).abs() + (center.b - left.b).abs() + 
+                     (center.b - top.b).abs() + (center.b - bottom.b).abs()).toInt();
+        
+        int totalDiff = diffR + diffG + diffB;
+        totalEdgeChecks++;
+        
+        if (totalDiff > 150) {
+          strongEdges++;
+        }
+      }
+    }
+    
+    double edgeDensity = (strongEdges / totalEdgeChecks) * 100;
+    debugPrint('📐 Edge density: ${edgeDensity.toStringAsFixed(1)}%');
+    
+    // Cups should have clear edges (object boundaries) - not too plain, not too chaotic
+    if (edgeDensity > 8 && edgeDensity < 35) {
+      passedChecks++;
+      debugPrint('✅ Edge density check passed');
+    } else {
+      debugPrint('❌ Edge density check failed - ${edgeDensity < 8 ? "too plain/uniform" : "too chaotic/busy"}');
+    }
+    
+    // 3. Check contrast and lighting - cups have defined shadows/highlights
+    List<int> brightness = [];
+    List<int> saturation = [];
+    
+    for (int y = 0; y < image.height; y += 4) {
+      for (int x = 0; x < image.width; x += 4) {
+        final pixel = image.getPixel(x, y);
+        int r = pixel.r.toInt();
+        int g = pixel.g.toInt();
+        int b = pixel.b.toInt();
+        
+        int bright = ((r + g + b) / 3).toInt();
+        brightness.add(bright);
+        
+        int maxC = [r, g, b].reduce((a, b) => a > b ? a : b);
+        int minC = [r, g, b].reduce((a, b) => a < b ? a : b);
+        int sat = maxC - minC;
+        saturation.add(sat);
+      }
+    }
+    
+    double avgBrightness = brightness.reduce((a, b) => a + b) / brightness.length;
+    double variance = brightness.map((b) => pow(b - avgBrightness, 2)).reduce((a, b) => a + b) / brightness.length;
+    double stdDev = sqrt(variance);
+    
+    double avgSaturation = saturation.reduce((a, b) => a + b) / saturation.length;
+    
+    debugPrint('💡 Brightness std dev: ${stdDev.toStringAsFixed(1)}');
+    debugPrint('🎨 Average saturation: ${avgSaturation.toStringAsFixed(1)}');
+    
+    // Cups should have good contrast and some color saturation
+    // Too uniform = plain surface (wall, paper, hand)
+    // Good contrast + saturation = 3D object with colors (cup)
+    if (stdDev > 25 && stdDev < 90 && avgSaturation > 15) {
+      passedChecks++;
+      debugPrint('✅ Contrast/saturation check passed');
+    } else {
+      debugPrint('❌ Contrast/saturation check failed - ${stdDev < 25 ? "too uniform" : stdDev > 90 ? "too chaotic" : "low saturation"}');
+    }
+    
+    // Calculate final score: ALL checks must pass for high score
+    double finalScore = passedChecks / totalChecks;
+    
+    debugPrint('🎯 Image characteristic score: ${(finalScore * 100).toStringAsFixed(1)}% (${passedChecks}/${totalChecks} checks passed)');
+    debugPrint(passedChecks == totalChecks ? '✅ Image looks like a coffee cup' : '❌ Image does NOT look like a coffee cup');
+    
+    return finalScore;
+  }
+
   Future<void> _classifyImage() async {
     if (_imageFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -206,6 +374,48 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
         throw Exception('Failed to decode image');
       }
       
+      // STEP 1: Analyze image characteristics BEFORE running the model
+      double imageScore = await _analyzeImageCharacteristics(image);
+      const double minImageScore = 0.7; // Need at least 70% match on visual characteristics (STRICT)
+      
+      debugPrint('🔍 Image score: ${(imageScore * 100).toStringAsFixed(1)}% (minimum required: 70%)');
+      
+      if (imageScore < minImageScore) {
+        debugPrint('❌ Image failed visual analysis (score: ${(imageScore * 100).toStringAsFixed(1)}%)');
+        setState(() {
+          _predictedClass = 'Not Recognized';
+          _accuracy = 0.0;
+        });
+        
+        await _saveToFirebase('Not Recognized', 0.0);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.warning_amber, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      '⚠️ This image doesn\'t look like a coffee cup. Visual analysis score: ${(imageScore * 100).toStringAsFixed(0)}%',
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+        
+        setState(() => _loading = false);
+        return; // Stop here, don't run the model
+      }
+      
+      debugPrint('✅ Image passed visual analysis (score: ${(imageScore * 100).toStringAsFixed(1)}%)');
+      
+      // STEP 2: Continue with model prediction
       // Teachable Machine uses 224x224 input size
       final inputSize = 224;
       img.Image resizedImage = img.copyResize(
@@ -245,62 +455,131 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
       // Get predictions
       List<double> probabilities = List<double>.from(output[0]);
       
+      debugPrint('🔍 RAW OUTPUT: $probabilities');
+      debugPrint('🔍 Number of classes: ${probabilities.length}');
+      
       // Find the class with highest probability
       int maxIndex = 0;
       double maxProb = probabilities[0];
+      int secondMaxIndex = -1;
+      double secondMaxProb = 0.0;
+      
       for (int i = 1; i < probabilities.length; i++) {
         if (probabilities[i] > maxProb) {
+          secondMaxProb = maxProb;
+          secondMaxIndex = maxIndex;
           maxProb = probabilities[i];
           maxIndex = i;
+        } else if (probabilities[i] > secondMaxProb) {
+          secondMaxProb = probabilities[i];
+          secondMaxIndex = i;
         }
       }
       
       final confidence = maxProb * 100;
+      final secondConfidence = secondMaxProb * 100;
       
-      debugPrint('🎯 Analysis complete: ${_labels[maxIndex]} (${confidence.toStringAsFixed(1)}%)');
-      debugPrint('📊 All probabilities: ${probabilities.map((p) => (p * 100).toStringAsFixed(1)).toList()}');
+      debugPrint('🎯 Top prediction: ${_labels[maxIndex]} (${confidence.toStringAsFixed(1)}%)');
+      if (secondMaxIndex >= 0) {
+        debugPrint('🥈 2nd prediction: ${_labels[secondMaxIndex]} (${secondConfidence.toStringAsFixed(1)}%)');
+      }
+      debugPrint('📊 All probabilities: ${probabilities.asMap().entries.map((e) => '${_labels[e.key]}: ${(e.value * 100).toStringAsFixed(1)}%').join(', ')}');
       
-      // Check if confidence is too low (not a trained object)
-      const double confidenceThreshold = 85.0; // Minimum 85% confidence for valid prediction
+      // STRICT Validation checks for unknown objects
+      // Since the model was trained ONLY on coffee cups, it will always try to classify
+      // We need VERY strict thresholds to reject non-coffee-cup images
       
-      // Additional check: If second highest probability is too close, it's uncertain
-      List<double> sortedProbs = List.from(probabilities)..sort((a, b) => b.compareTo(a));
-      double secondHighest = sortedProbs.length > 1 ? sortedProbs[1] * 100 : 0;
-      double margin = confidence - secondHighest;
+      const double confidenceThreshold = 75.0; // Minimum 75% confidence (STRICT)
+      const double marginThreshold = 25.0; // Minimum 25% gap from 2nd place (STRICT)
+      const double absoluteMinimum = 0.50; // Must be at least 50% confident
       
-      debugPrint('📊 Confidence margin: ${margin.toStringAsFixed(1)}% (difference from 2nd choice)');
+      double margin = confidence - secondConfidence;
       
-      if (confidence < confidenceThreshold || margin < 30.0) {
+      // Calculate entropy to detect uniform distribution (all classes similar = unknown)
+      double entropy = 0.0;
+      for (var prob in probabilities) {
+        if (prob > 0.0001) { // Avoid log(0)
+          entropy += prob * (log(prob) / log(2));
+        }
+      }
+      entropy = -entropy;
+      double maxEntropy = log(probabilities.length.toDouble()) / log(2);
+      double normalizedEntropy = entropy / maxEntropy; // 0 = certain, 1 = uniform
+      
+      // Calculate standard deviation - low std = uniform = unknown
+      double mean = probabilities.reduce((a, b) => a + b) / probabilities.length;
+      double variance = probabilities.map((p) => pow(p - mean, 2)).reduce((a, b) => a + b) / probabilities.length;
+      double stdDev = sqrt(variance);
+      
+      debugPrint('📊 Model Confidence: ${confidence.toStringAsFixed(1)}%');
+      debugPrint('📊 2nd highest: ${secondConfidence.toStringAsFixed(1)}%');
+      debugPrint('📊 Margin: ${margin.toStringAsFixed(1)}%');
+      debugPrint('📊 Entropy: ${normalizedEntropy.toStringAsFixed(3)} (0=certain, 1=uniform)');
+      debugPrint('📊 Std Dev: ${stdDev.toStringAsFixed(4)} (higher=more certain)');
+      debugPrint('📊 Image Visual Score: ${(imageScore * 100).toStringAsFixed(1)}%');
+      
+      // COMBINED VALIDATION: Image characteristics + Model confidence
+      // Both must agree for a valid prediction
+      
+      bool isLowConfidence = confidence < confidenceThreshold;
+      bool isLowMargin = margin < marginThreshold;
+      bool isUniform = normalizedEntropy > 0.80; // High entropy = confused
+      bool isTooWeak = maxProb < absoluteMinimum;
+      bool isLowVariance = stdDev < 0.15; // Low variance = all classes similar
+      bool failedVisualCheck = imageScore < 0.6; // Even if model is confident, image must look right
+      
+      debugPrint('📊 Validation checks:');
+      debugPrint('   - Low confidence (<75%): $isLowConfidence');
+      debugPrint('   - Low margin (<25%): $isLowMargin');
+      debugPrint('   - Uniform distribution: $isUniform');
+      debugPrint('   - Too weak (<50%): $isTooWeak');
+      debugPrint('   - Low variance: $isLowVariance');
+      debugPrint('   - Failed visual check (<60%): $failedVisualCheck');
+      
+      if (isLowConfidence || isLowMargin || isUniform || isTooWeak || isLowVariance || failedVisualCheck) {
         // Low confidence - not a coffee cup or unknown object
         setState(() {
-          _predictedClass = 'Unknown Object';
+          _predictedClass = 'Not Recognized';
           _accuracy = 0.0; // Set to 0% for unknown objects
         });
         
         // Save to Firebase with 0% accuracy for tracking
-        await _saveToFirebase('Unknown Object', 0.0);
+        await _saveToFirebase('Not Recognized', 0.0);
+        
+        String reason = '';
+        if (failedVisualCheck) {
+          reason = '⚠️ Image doesn\'t visually match trained coffee cups (visual score: ${(imageScore * 100).toStringAsFixed(0)}%)';
+        } else if (isTooWeak || isUniform || isLowVariance) {
+          reason = '⚠️ This object does not match any trained coffee cup class.';
+        } else if (isLowConfidence) {
+          reason = '⚠️ Confidence too low (${confidence.toStringAsFixed(1)}%). Not a recognized coffee cup.';
+        } else if (isLowMargin) {
+          reason = '⚠️ Uncertain prediction (margin: ${margin.toStringAsFixed(1)}%). Not a clear match.';
+        } else {
+          reason = '⚠️ Object not recognized as a trained coffee cup.';
+        }
+        
+        debugPrint('❌ REJECTED: $reason');
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Row(
                 children: [
-                  Icon(Icons.warning_amber, color: Colors.white),
-                  SizedBox(width: 12),
+                  const Icon(Icons.warning_amber, color: Colors.white),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      'This does not appear to be a coffee cup from our trained classes.',
-                    ),
+                    child: Text(reason),
                   ),
                 ],
               ),
               backgroundColor: Colors.orange,
-              duration: Duration(seconds: 4),
+              duration: const Duration(seconds: 4),
             ),
           );
         }
         
-        debugPrint('⚠️ Low confidence: Object not recognized - Saved as Unknown (0%)');
+        debugPrint('⚠️ Object not recognized - Reason: $reason');
       } else {
         // Good confidence - valid prediction
         final predictedLabel = _labels[maxIndex];
@@ -353,7 +632,7 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
         'user_id': _currentUser!.uid,
         'cup_variety': prediction,
         'confidence': confidence,
-        'is_valid': prediction != 'Unknown Object', // Track if it's a valid prediction
+        'is_valid': prediction != 'Unknown Object' && prediction != 'Not Recognized', // Track if it's a valid prediction
       });
       debugPrint('💾 Saved to Firebase: $prediction (${confidence.toStringAsFixed(1)}%)');
     } catch (e) {
@@ -625,7 +904,7 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
                       ),
                       const SizedBox(height: 12),
                       InkWell(
-                        onTap: _predictedClass == 'Unknown Object'
+                        onTap: (_predictedClass == 'Unknown Object' || _predictedClass == 'Not Recognized')
                             ? null
                             : () {
                                 Navigator.push(
@@ -643,7 +922,7 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: _predictedClass == 'Unknown Object'
+                            color: (_predictedClass == 'Unknown Object' || _predictedClass == 'Not Recognized')
                                 ? Colors.orange.shade50
                                 : Colors.white.withOpacity(0.8),
                             borderRadius: BorderRadius.circular(12),
@@ -653,13 +932,13 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  if (_predictedClass == 'Unknown Object')
+                                  if (_predictedClass == 'Unknown Object' || _predictedClass == 'Not Recognized')
                                     Icon(
                                       Icons.help_outline,
                                       color: Colors.orange.shade700,
                                       size: 24,
                                     ),
-                                  if (_predictedClass == 'Unknown Object')
+                                  if (_predictedClass == 'Unknown Object' || _predictedClass == 'Not Recognized')
                                     const SizedBox(width: 8),
                                   Flexible(
                                     child: Text(
@@ -667,7 +946,7 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
                                       style: TextStyle(
                                         fontSize: 22,
                                         fontWeight: FontWeight.bold,
-                                        color: _predictedClass == 'Unknown Object'
+                                        color: (_predictedClass == 'Unknown Object' || _predictedClass == 'Not Recognized')
                                             ? Colors.orange.shade700
                                             : const Color(0xFF6F4E37),
                                       ),
@@ -676,7 +955,7 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
                                   ),
                                 ],
                               ),
-                              if (_predictedClass != 'Unknown Object') ...[
+                              if (_predictedClass != 'Unknown Object' && _predictedClass != 'Not Recognized') ...[
                                 const SizedBox(height: 4),
                                 Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -698,7 +977,7 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
                                   ],
                                 ),
                               ],
-                              if (_predictedClass == 'Unknown Object') ...[
+                              if (_predictedClass == 'Unknown Object' || _predictedClass == 'Not Recognized') ...[
                                 const SizedBox(height: 8),
                                 Text(
                                   'This image does not match any trained coffee cup class',
@@ -722,7 +1001,7 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
                           ),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: _predictedClass == 'Unknown Object'
+                              colors: (_predictedClass == 'Unknown Object' || _predictedClass == 'Not Recognized')
                                   ? [
                                       Colors.orange.shade400,
                                       Colors.orange.shade600,

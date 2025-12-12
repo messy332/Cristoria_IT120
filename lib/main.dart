@@ -11,6 +11,7 @@ import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:image/image.dart' as img;
 import 'firebase_options.dart';
 import 'coffee_cup_info.dart';
+import 'history_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -76,6 +77,7 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
   bool _labelsLoaded = false;
   User? _currentUser;
   Interpreter? _interpreter;
+  List<Map<String, dynamic>> _predictionDistribution = [];
 
   @override
   void initState() {
@@ -158,6 +160,7 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
           _imageFile = File(pickedFile.path);
           _predictedClass = null;
           _accuracy = null;
+          _predictionDistribution = [];
         });
         debugPrint('📸 Image selected: ${pickedFile.path}');
       }
@@ -403,10 +406,20 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
       
       // Show ALL predictions in a clear format
       debugPrint('📊 === ALL CLASS PREDICTIONS ===');
+      List<Map<String, dynamic>> currentDistribution = [];
       for (int i = 0; i < probabilities.length; i++) {
         String emoji = i == maxIndex ? '🥇' : (i == secondMaxIndex ? '🥈' : '  ');
         debugPrint('$emoji ${i + 1}. ${_labels[i]}: ${(probabilities[i] * 100).toStringAsFixed(2)}%');
+        
+        currentDistribution.add({
+          'label': _labels[i],
+          'confidence': probabilities[i] * 100,
+          'isTop': i == maxIndex,
+        });
       }
+      // Sort by confidence descending
+      currentDistribution.sort((a, b) => (b['confidence'] as double).compareTo(a['confidence'] as double));
+      
       debugPrint('📊 ================================');
       
       // Validation checks for unknown objects
@@ -465,6 +478,7 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
         setState(() {
           _predictedClass = 'Not Recognized';
           _accuracy = 0.0; // Set to 0% for unknown objects
+          _predictionDistribution = currentDistribution;
         });
         
         // Save to Firebase with 0% accuracy for tracking
@@ -512,6 +526,7 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
         setState(() {
           _predictedClass = predictedLabel;
           _accuracy = confidence;
+          _predictionDistribution = currentDistribution;
         });
 
         // Save to Firebase with actual confidence
@@ -615,6 +630,18 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
         foregroundColor: Colors.white,
         centerTitle: true,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.history_rounded),
+            tooltip: 'View History',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const HistoryPage(),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.library_books_outlined),
             tooltip: 'View Cup Varieties',
@@ -748,6 +775,7 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
                         _imageFile = null;
                         _predictedClass = null;
                         _accuracy = null;
+                        _predictionDistribution = [];
                       });
                     },
                     style: ElevatedButton.styleFrom(
@@ -988,6 +1016,91 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
               ),
               
               const SizedBox(height: 24),
+
+              // Prediction Distribution
+              if (_predictionDistribution.isNotEmpty) ...[
+                Text(
+                  'Prediction Distribution',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.brown.shade700,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.brown.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: _predictionDistribution.take(5).map((item) {
+                      final isTop = item['isTop'] as bool;
+                      final confidence = item['confidence'] as double;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              color: Colors.grey.shade100,
+                              width: 1,
+                            ),
+                          ),
+                          color: isTop ? Colors.green.withOpacity(0.05) : null,
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              isTop ? '🥇' : '  ',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                item['label'],
+                                style: TextStyle(
+                                  fontWeight: isTop ? FontWeight.bold : FontWeight.normal,
+                                  color: isTop ? Colors.green.shade800 : Colors.black87,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '${confidence.toStringAsFixed(1)}%',
+                              style: TextStyle(
+                                fontWeight: isTop ? FontWeight.bold : FontWeight.normal,
+                                color: isTop ? Colors.green.shade800 : Colors.grey.shade600,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            SizedBox(
+                              width: 60,
+                              height: 6,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(3),
+                                child: LinearProgressIndicator(
+                                  value: confidence / 100,
+                                  backgroundColor: Colors.grey.shade200,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    isTop ? Colors.green : Colors.brown.shade300,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
             ],
             
             // Chart section

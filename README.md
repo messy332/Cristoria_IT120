@@ -36,7 +36,15 @@ The application displays the **Predicted Class** along with a confidence score.
 *   **Detailed Info**: Tap on the result to learn more about the specific cup type.
 
 <div align="center">
-  <img src="screenshots/result_screen.png" alt="Result Screen" width="250" />
+  <img src="screenshots/pic1.png" width="200" /> <img src="screenshots/pic2.png" width="200" /> <img src="screenshots/pic3.png" width="200" />
+  <br/>
+  <img src="screenshots/pic4.png" width="200" /> <img src="screenshots/pic5.png" width="200" /> <img src="screenshots/pic6.png" width="200" />
+  <br/>
+  <img src="screenshots/pic7.png" width="200" /> <img src="screenshots/pic8.png" width="200" /> <img src="screenshots/pic9.png" width="200" />
+  <br/>
+  <img src="screenshots/pic10.png" width="200" /> <img src="screenshots/pic11.png" width="200" /> <img src="screenshots/pic12.png" width="200" />
+  <br/>
+  <img src="screenshots/pic13.png" width="200" /> <img src="screenshots/pic14.png" width="200" /> <img src="screenshots/pic15.png" width="200" />
 </div>
 
 ### 4. History & Tracking

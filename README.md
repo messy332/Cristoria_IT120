@@ -36,15 +36,15 @@ The application displays the **Predicted Class** along with a confidence score.
 *   **Detailed Info**: Tap on the result to learn more about the specific cup type.
 
 <div align="center">
-  <img src="screenshots/pic1.png" width="200" /> <img src="screenshots/pic2.png" width="200" /> <img src="screenshots/pic3.png" width="200" />
+  <img src="assets/pic1.png" width="200" /> <img src="assets/pic2.png" width="200" /> <img src="assets/pic3.png" width="200" />
   <br/>
-  <img src="screenshots/pic4.png" width="200" /> <img src="screenshots/pic5.png" width="200" /> <img src="screenshots/pic6.png" width="200" />
+  <img src="assets/pic4.png" width="200" /> <img src="assets/pic5.png" width="200" /> <img src="assets/pic6.png" width="200" />
   <br/>
-  <img src="screenshots/pic7.png" width="200" /> <img src="screenshots/pic8.png" width="200" /> <img src="screenshots/pic9.png" width="200" />
+  <img src="assets/pic7.png" width="200" /> <img src="assets/pic8.png" width="200" /> <img src="assets/pic9.png" width="200" />
   <br/>
-  <img src="screenshots/pic10.png" width="200" /> <img src="screenshots/pic11.png" width="200" /> <img src="screenshots/pic12.png" width="200" />
+  <img src="assets/pic10.png" width="200" /> <img src="assets/pic11.png" width="200" /> <img src="assets/pic12.png" width="200" />
   <br/>
-  <img src="screenshots/pic13.png" width="200" /> <img src="screenshots/pic14.png" width="200" /> <img src="screenshots/pic15.png" width="200" />
+  <img src="assets/pic13.png" width="200" /> <img src="assets/pic14.png" width="200" /> 
 </div>
 
 ### 4. History & Tracking

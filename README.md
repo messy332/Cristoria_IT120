@@ -3,7 +3,7 @@
 <div align="center">
   <img src="assets/coffee.png" alt="Scape Logo" width="120" height="120" />
   <br/>
-  <h3>AI-Powered Coffee Cup Identification</h3>
+  <h3><strog>SCAPE</strog></h3>
   <p>
     <b>Scape</b> is an intelligent mobile application built with Flutter that uses on-device Machine Learning to identify and classify 10 distinct varieties of coffee cups.
   </p>
@@ -27,7 +27,7 @@ Start by launching the app. You are greeted with a clean interface featuring opt
 Once an image is selected, Scape's advanced AI model analyzes the visual characteristics of the cup—looking at shape, texture, and features—to determine its variety.
 
 <div align="center">
-  <img src="screenshots/analysis.png" alt="Analysis in Progress" width="250" />
+  <img src="assets/analysis.png" alt="Analysis in Progress" width="250" />
 </div>
 
 ### 3. Smart Results
@@ -55,7 +55,6 @@ Keep track of your coffee journey. The **History Page** logs every scan with:
 
 <div align="center">
   <img src="assets/history.png" alt="History Page" width="250" />
-  <img src="assets/history1.png" alt="History Page" width="250" />
 </div>
 
 ---

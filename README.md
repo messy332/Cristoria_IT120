@@ -46,7 +46,8 @@ Keep track of your coffee journey. The **History Page** logs every scan with:
 *   **Timestamp**: Exactly when the scan occurred.
 
 <div align="center">
-  <img src="assests/history_page.png" alt="History Page" width="250" />
+  <img src="assets/history.png" alt="History Page" width="250" />
+  <img src="assets/history1.png" alt="History Page" width="250" />
 </div>
 
 ---

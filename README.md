@@ -36,7 +36,7 @@ The application displays the **Predicted Class** along with a confidence score.
 *   **Detailed Info**: Tap on the result to learn more about the specific cup type.
 
 <div align="center">
-  <img src="assets/pic1.png" width="200" /> <img src="assets/pic2.png" width="200" /> <img src="assets/pic3.png" width="200" />
+  <img src="assets/pic1.png" width="200" /> <img src="assets/pic2.png" width="200" /> <img src="assets/pic3.png" width="240" />
   <br/>
   <img src="assets/pic4.png" width="200" /> <img src="assets/pic5.png" width="200" /> <img src="assets/pic6.png" width="200" />
   <br/>

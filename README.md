@@ -19,9 +19,8 @@ Experience a seamless journey from detection to discovery.
 Start by launching the app. You are greeted with a clean interface featuring options to capture a new image via **Camera** or select an existing one from your **Gallery**.
 
 <div align="center">
-  <img src="screenshots/home_screen.png" alt="Home Screen" width="250" />
+  <img src="assets/home_screen.png" alt="Home Screen" width="250" />
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="screenshots/camera_view.png" alt="Camera View" width="250" />
 </div>
 
 ### 2. Analysis & Detection

@@ -24,7 +24,7 @@ Start by launching the app. You are greeted with a clean interface featuring opt
 </div>
 
 ### 2. Analysis & Detection
-Once an image is selected, Scape's advanced AI model analyzes the visual characteristics of the cup—looking at shape, texture, and features—to determine its variety.
+Once an image is selected, Scape's advanced analyzes the visual characteristics of the cup—looking at shape, texture, and features—to determine its variety.
 
 <div align="center">
   <img src="assets/analysis.png" alt="Analysis in Progress" width="250" />
@@ -84,7 +84,7 @@ Scape is trained to recognize these specific coffee cup types, each with its own
 *   **AI Engine**: TensorFlow Lite (On-device inference)
 *   **Backend**: Firebase Realtime Database (History tracking)
 *   **Key Features**:
-    *   Offline-capable image recognition.
+    *   Online-capable image recognition.
     *   Real-time probability distribution visualization.
     *   Historical data tracking with accuracy metrics.
     *   Educational gallery of coffee cup types.
@@ -95,7 +95,7 @@ Scape is trained to recognize these specific coffee cup types, each with its own
 
 1.  **Clone the repository**:
     ```bash
-    git clone https://github.com/yourusername/scape.git
+    git clone https://github.com/messy332/scape.git
     ```
 2.  **Install dependencies**:
     ```bash

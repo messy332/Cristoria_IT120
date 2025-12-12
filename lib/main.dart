@@ -1041,7 +1041,7 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
                     ],
                   ),
                   child: Column(
-                    children: _predictionDistribution.take(5).map((item) {
+                    children: _predictionDistribution.map((item) {
                       final isTop = item['isTop'] as bool;
                       final confidence = item['confidence'] as double;
                       return Container(

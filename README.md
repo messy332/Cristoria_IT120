@@ -33,7 +33,7 @@ Once an image is selected, Scape's advanced AI model analyzes the visual charact
 
 ### 3. Smart Results
 The application displays the **Predicted Class** along with a confidence score.
-*   **Prediction Distribution**: View the top 5 potential matches with their probability percentages, giving you insight into the model's certainty.
+*   **Prediction Distribution**: View all 10 potential matches with their probability percentages, giving you insight into the model's certainty.
 *   **Detailed Info**: Tap on the result to learn more about the specific cup type.
 
 <div align="center">

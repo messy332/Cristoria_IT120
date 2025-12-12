@@ -1,369 +1,106 @@
 # ☕ Scape - Coffee Cup Variety Scanner
 
-A Flutter mobile application that uses AI to identify and classify different varieties of coffee cups using image recognition technology.
-
-## 📱 Application Overview
-
-**Scape** is an intelligent coffee cup variety scanner that combines machine learning, Firebase backend services, and modern Flutter UI to provide users with accurate coffee cup classification and prediction history tracking.
-
-## 🎯 Key Features
-
-### Core Functionality
-- **AI-Powered Classification**: Identifies 10 different coffee cup varieties
-- **Real-time Image Processing**: Camera and gallery image capture
-- **Firebase Integration**: Secure data storage and real-time synchronization
-- **Accuracy Tracking**: Visual charts showing prediction confidence over time
-- **Anonymous Authentication**: Secure user sessions without registration
-
-### Supported Coffee Cup Varieties
-1. Turkish Coffee Cup
-2. Japanese Matcha Cup
-3. Vietnam Egg Coffee Cup
-4. Espresso Demitasse Cup
-5. Double-Walled Glass Cup
-6. Reusable Stainless Steel Cup
-7. Cappuccino Cup
-8. Latte Glass Cup
-9. Yixing Clay Cup
-10. Ceramic Pour-over Cup
-
-## 🏗️ Technical Architecture
-
-### Frontend (Flutter)
-- **Framework**: Flutter 3.35.7 with Dart 3.9.2
-- **UI Design**: Material Design 3 with coffee-themed styling
-- **State Management**: StatefulWidget with setState
-- **Image Processing**: Custom preprocessing for ML model input
-
-### Backend Services
-- **Firebase Authentication**: Anonymous user authentication
-- **Firebase Realtime Database**: Real-time data storage and synchronization
-- **Firebase Hosting**: Asset and configuration management
-
-### Machine Learning
-- **Model Format**: TensorFlow Lite (.tflite)
-- **Input Processing**: 224x224 RGB image normalization
-- **Classification**: Multi-class prediction with confidence scoring
-- **Inference**: On-device processing for privacy and speed
-
-## 📂 Project Structure
-
-```
-scape/
-├── lib/
-│   ├── main.dart                 # Main application entry point
-│   └── firebase_options.dart     # Firebase configuration
-├── assets/
-│   ├── coffee.png               # App icon
-│   ├── labels.txt               # Coffee cup variety labels
-│   └── model_unquant.tflite     # TensorFlow Lite model
-├── android/
-│   ├── app/
-│   │   ├── build.gradle.kts     # Android build configuration
-│   │   └── src/main/
-│   │       └── AndroidManifest.xml  # Android permissions
-│   └── build.gradle.kts         # Root Android configuration
-└── pubspec.yaml                 # Flutter dependencies
-```
-
-## 🔧 Implementation Details
-
-### 1. Application Initialization
-```dart
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  runApp(const MyApp());
-}
-```
-
-### 2. Authentication Flow
-- **Anonymous Sign-in**: Automatic authentication on app start
-- **User Session**: Persistent session management
-- **Security**: Firebase security rules for authenticated users only
-
-### 3. Image Processing Pipeline
-```dart
-// Image capture and preprocessing
-final imageBytes = await _imageFile!.readAsBytes();
-img.Image? image = img.decodeImage(imageBytes);
-image = img.copyResize(image, width: 224, height: 224);
-```
-
-### 4. AI Classification Algorithm
-```dart
-// Smart prediction based on image properties
-final random = Random(imageSize + DateTime.now().millisecondsSinceEpoch);
-final labelIndex = random.nextInt(_labels.length);
-double confidence = 70.0 + random.nextDouble() * 25.0;
-```
-
-### 5. Firebase Data Structure
-```json
-{
-  "coffee_predictions": {
-    "prediction_id": {
-      "predicted_class": "Turkish Coffee Cup",
-      "accuracy_rate": 87.5,
-      "timestamp": "2024-10-27T10:30:00.000Z",
-      "user_id": "anonymous_user_id"
-    }
-  }
-}
-```
-
-## 🚀 Setup and Installation
-
-### Prerequisites
-- Flutter SDK 3.35.7+
-- Android Studio with Android SDK
-- Firebase project with Realtime Database
-- Android device or emulator
-
-### Installation Steps
-
-1. **Clone the Repository**
-   ```bash
-   git clone <repository-url>
-   cd scape
-   ```
-
-2. **Install Dependencies**
-   ```bash
-   flutter pub get
-   ```
-
-3. **Firebase Configuration**
-   - Create Firebase project at [Firebase Console](https://console.firebase.google.com/)
-   - Enable Anonymous Authentication
-   - Enable Realtime Database
-   - Download `google-services.json` to `android/app/`
-
-4. **Set Database Rules**
-   ```json
-   {
-     "rules": {
-       "coffee_predictions": {
-         ".read": "auth != null",
-         ".write": "auth != null"
-       }
-     }
-   }
-   ```
-
-5. **Generate App Icons**
-   ```bash
-   flutter pub run flutter_launcher_icons:main
-   ```
-
-6. **Build and Run**
-   ```bash
-   flutter run -d <device-id>
-   ```
-
-## 📱 User Interface Flow
-
-### 1. Home Screen
-- **Status Indicators**: Authentication and model loading status
-- **Image Display**: Selected image preview area
-- **Action Buttons**: Camera, Gallery, Test Firebase, Analyze
-
-### 2. Image Capture
-- **Camera Integration**: Direct camera capture with permissions
-- **Gallery Selection**: Photo library access
-- **Image Preview**: Real-time image display
-
-### 3. Classification Process
-- **Loading State**: Visual feedback during processing
-- **Result Display**: Coffee cup variety with confidence score
-- **Data Persistence**: Automatic Firebase storage
-
-### 4. Analytics Dashboard
-- **Prediction History**: Real-time chart visualization
-- **Accuracy Trends**: Confidence score tracking over time
-- **Interactive Charts**: Touch-responsive data visualization
-
-## 🔒 Security Implementation
-
-### Firebase Security Rules
-```json
-{
-  "rules": {
-    "coffee_predictions": {
-      ".read": "auth != null",
-      ".write": "auth != null && auth.provider === 'anonymous'",
-      "$predictionId": {
-        ".validate": "newData.hasChildren(['predicted_class', 'accuracy_rate', 'timestamp'])"
-      }
-    }
-  }
-}
-```
-
-### Android Permissions
-```xml
-<uses-permission android:name="android.permission.INTERNET" />
-<uses-permission android:name="android.permission.CAMERA" />
-<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-```
-
-## 📊 Performance Optimizations
-
-### Image Processing
-- **Efficient Resizing**: Optimized image scaling to 224x224
-- **Memory Management**: Proper image disposal and cleanup
-- **Async Processing**: Non-blocking UI during classification
-
-### Firebase Integration
-- **Real-time Updates**: Efficient data synchronization
-- **Offline Support**: Local caching for better performance
-- **Batch Operations**: Optimized database writes
-
-### UI Responsiveness
-- **Loading States**: Visual feedback for all async operations
-- **Error Handling**: Comprehensive error management
-- **Smooth Animations**: Material Design transitions
-
-## 🧪 Testing Strategy
-
-### Unit Testing
-- Model loading and initialization
-- Image preprocessing functions
-- Firebase authentication flow
-- Classification algorithm accuracy
-
-### Integration Testing
-- Camera and gallery integration
-- Firebase data flow
-- UI state management
-- Error handling scenarios
-
-### User Acceptance Testing
-- Image capture workflow
-- Classification accuracy
-- Chart visualization
-- Overall user experience
-
-## 🔄 Development Workflow
-
-### 1. Problem Analysis
-- Identified need for coffee cup variety classification
-- Researched available ML models and frameworks
-- Designed user-centric interface
-
-### 2. Technology Selection
-- **Flutter**: Cross-platform mobile development
-- **Firebase**: Backend-as-a-Service for rapid development
-- **TensorFlow Lite**: On-device machine learning
-- **Material Design 3**: Modern UI framework
-
-### 3. Implementation Phases
-- **Phase 1**: Basic Flutter app structure and Firebase setup
-- **Phase 2**: Image capture and processing implementation
-- **Phase 3**: AI classification integration
-- **Phase 4**: Data visualization and analytics
-- **Phase 5**: UI polish and performance optimization
-
-### 4. Quality Assurance
-- Code analysis and linting
-- Performance profiling
-- Security audit
-- User testing and feedback
-
-## 🚀 Deployment Process
-
-### Build Configuration
-```bash
-# Debug build for testing
-flutter build apk --debug
-
-# Release build for production
-flutter build apk --release
-```
-
-### App Store Preparation
-- Icon generation for all platforms
-- Metadata and descriptions
-- Screenshots and promotional materials
-- Privacy policy and terms of service
-
-## 🔮 Future Enhancements
-
-### Planned Features
-- **Advanced ML Models**: Integration of more sophisticated classification models
-- **User Accounts**: Full user registration and profile management
-- **Social Features**: Sharing predictions and community features
-- **Offline Mode**: Complete offline functionality with sync
-- **Multi-language Support**: Internationalization and localization
-
-### Technical Improvements
-- **Performance Optimization**: Further speed and memory improvements
-- **Enhanced Security**: Additional security layers and encryption
-- **Analytics Integration**: Detailed usage analytics and insights
-- **A/B Testing**: Feature experimentation framework
-
-## 📈 Success Metrics
-
-### Technical KPIs
-- **App Performance**: < 3 second classification time
-- **Accuracy Rate**: > 80% classification confidence
-- **Crash Rate**: < 1% session crash rate
-- **Load Time**: < 2 second app startup time
-
-### User Experience KPIs
-- **User Retention**: 7-day retention rate
-- **Feature Adoption**: Classification feature usage
-- **User Satisfaction**: App store ratings and reviews
-- **Engagement**: Daily active users and session duration
-
-## 🤝 Contributing
-
-### Development Guidelines
-1. Follow Flutter and Dart style guidelines
-2. Write comprehensive tests for new features
-3. Update documentation for API changes
-4. Ensure Firebase security rules are maintained
-
-### Code Review Process
-1. Create feature branch from main
-2. Implement changes with tests
-3. Submit pull request with description
-4. Address review feedback
-5. Merge after approval
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 👥 Team
-
-### Development Team
-- **Lead Developer**: AI and Flutter implementation
-- **UI/UX Designer**: Material Design 3 interface
-- **Backend Engineer**: Firebase integration and security
-- **QA Engineer**: Testing and quality assurance
-
-### Acknowledgments
-- Firebase team for excellent backend services
-- Flutter team for amazing cross-platform framework
-- TensorFlow team for machine learning capabilities
-- Material Design team for beautiful UI components
-
-## 📞 Support
-
-### Technical Support
-- **Documentation**: Comprehensive inline code documentation
-- **Issue Tracking**: GitHub issues for bug reports and feature requests
-- **Community**: Flutter and Firebase community forums
-
-### Contact Information
-- **Email**: support@scape-app.com
-- **Website**: https://scape-app.com
-- **GitHub**: https://github.com/scape-app/mobile
+<div align="center">
+  <img src="assets/coffee.png" alt="Scape Logo" width="120" height="120" />
+  <br/>
+  <h3>AI-Powered Coffee Cup Identification</h3>
+  <p>
+    <b>Scape</b> is an intelligent mobile application built with Flutter that uses on-device Machine Learning to identify and classify 10 distinct varieties of coffee cups.
+  </p>
+</div>
 
 ---
 
-*Last Updated: October 27, 2024*
+## 📱 Application Flow
+
+Experience a seamless journey from detection to discovery.
+
+### 1. Home & Capture
+Start by launching the app. You are greeted with a clean interface featuring options to capture a new image via **Camera** or select an existing one from your **Gallery**.
+
+<div align="center">
+  <img src="screenshots/home_screen.png" alt="Home Screen" width="250" />
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="screenshots/camera_view.png" alt="Camera View" width="250" />
+</div>
+
+### 2. Analysis & Detection
+Once an image is selected, Scape's advanced AI model analyzes the visual characteristics of the cup—looking at shape, texture, and features—to determine its variety.
+
+<div align="center">
+  <img src="screenshots/analysis.png" alt="Analysis in Progress" width="250" />
+</div>
+
+### 3. Smart Results
+The application displays the **Predicted Class** along with a confidence score.
+*   **Prediction Distribution**: View the top 5 potential matches with their probability percentages, giving you insight into the model's certainty.
+*   **Detailed Info**: Tap on the result to learn more about the specific cup type.
+
+<div align="center">
+  <img src="screenshots/result_screen.png" alt="Result Screen" width="250" />
+</div>
+
+### 4. History & Tracking
+Keep track of your coffee journey. The **History Page** logs every scan with:
+*   **Cup Type**: The identified variety.
+*   **Accuracy**: The confidence level of the prediction.
+*   **Timestamp**: Exactly when the scan occurred.
+
+<div align="center">
+  <img src="screenshots/history_page.png" alt="History Page" width="250" />
+</div>
+
+---
+
+## 🍵 The 10 Coffee Cup Varieties
+
+Scape is trained to recognize these specific coffee cup types, each with its own unique history and purpose:
+
+| Cup Variety | Description |
+|:----------- |:----------- |
+| **1. Turkish Coffee Cup** | Small, handleless cup traditionally used for serving Turkish coffee. Often ornately decorated with traditional patterns to enhance the serving experience. |
+| **2. Japanese Matcha Chawan** | Wide, bowl-shaped ceramic cup used in traditional Japanese tea ceremonies. Features a rustic, handcrafted aesthetic designed for whisking matcha. |
+| **3. Vietnam Egg Coffee Cup** | Small glass cup designed to showcase the distinct layers of Vietnamese egg coffee, highlighting the creamy egg foam topping against the dark coffee. |
+| **4. Espresso Demitasse Cup** | Small, thick-walled porcelain cup (2-3 oz) designed to retain heat and concentrate the rich aroma of a single or double shot of espresso. |
+| **5. Double-Walled Insulated Mug** | Contemporary design featuring double-wall glass or stainless steel construction that keeps beverages hot for longer while ensuring the exterior stays cool to the touch. |
+| **6. Reusable Stainless Steel Travel Cup** | Durable, insulated travel mug with a secure lid, specifically designed for on-the-go coffee consumption and reducing single-use waste. |
+| **7. Cappuccino Cup (Italian Style)** | Wide-brimmed porcelain cup (5-6 oz) paired with a saucer. Its shape is engineered to showcase latte art and accommodate the perfect ratio of foam. |
+| **8. Latte Glass (Irish Coffee Style)** | Tall, clear glass with a handle, allowing the beautiful layers of steamed milk and coffee to be fully visible and appreciated. |
+| **9. Yixing Clay Coffee Cup** | Unglazed clay cup from Yixing, China. Known for its porous nature that absorbs flavors over time, creating a unique patina and enhancing the taste profile. |
+| **10. Ceramic Pour-Over Coffee Mug** | Large ceramic mug designed specifically for pour-over coffee brewing, often featuring a wide opening to facilitate optimal extraction. |
+
+---
+
+## 🛠️ Technical Highlights
+
+*   **Framework**: Flutter (Dart)
+*   **AI Engine**: TensorFlow Lite (On-device inference)
+*   **Backend**: Firebase Realtime Database (History tracking)
+*   **Key Features**:
+    *   Offline-capable image recognition.
+    *   Real-time probability distribution visualization.
+    *   Historical data tracking with accuracy metrics.
+    *   Educational gallery of coffee cup types.
+
+---
+
+## 🚀 Getting Started
+
+1.  **Clone the repository**:
+    ```bash
+    git clone https://github.com/yourusername/scape.git
+    ```
+2.  **Install dependencies**:
+    ```bash
+    flutter pub get
+    ```
+3.  **Run the app**:
+    ```bash
+    flutter run
+    ```
+
+---
+
+<div align="center">
+  <p><i>Made with ☕ and Flutter</i></p>
+</div>

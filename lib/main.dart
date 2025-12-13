@@ -96,8 +96,26 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
       debugPrint('🔄 Loading TensorFlow Lite model...');
       _interpreter = await Interpreter.fromAsset('assets/model_unquant.tflite');
       debugPrint('✅ Model loaded successfully');
-      debugPrint('📊 Input shape: ${_interpreter!.getInputTensors()}');
-      debugPrint('📊 Output shape: ${_interpreter!.getOutputTensors()}');
+      
+      // Detailed model inspection
+      final inputTensors = _interpreter!.getInputTensors();
+      final outputTensors = _interpreter!.getOutputTensors();
+      
+      debugPrint('📊 === MODEL DETAILS ===');
+      debugPrint('📊 Input tensors: ${inputTensors.length}');
+      for (int i = 0; i < inputTensors.length; i++) {
+        final tensor = inputTensors[i];
+        debugPrint('📊 Input $i: shape=${tensor.shape}, type=${tensor.type}');
+      }
+      
+      debugPrint('📊 Output tensors: ${outputTensors.length}');
+      for (int i = 0; i < outputTensors.length; i++) {
+        final tensor = outputTensors[i];
+        debugPrint('📊 Output $i: shape=${tensor.shape}, type=${tensor.type}');
+      }
+      debugPrint('📊 Expected classes: ${_labels.length}');
+      debugPrint('📊 =====================');
+      
     } catch (e) {
       debugPrint('❌ Error loading model: $e');
     }
@@ -330,10 +348,11 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
       }
       
       // STEP 1: Analyze image characteristics BEFORE running the model
-      double imageScore = await _analyzeImageCharacteristics(image);
+      // DISABLED for debugging - trust the model completely
+      double imageScore = 1.0; // Force pass
       
-      debugPrint('🔍 Image score: ${(imageScore * 100).toStringAsFixed(1)}%');
-      debugPrint('✅ Skipping strict visual check - trusting model prediction');
+      debugPrint('🔍 Image analysis DISABLED - trusting model completely');
+      debugPrint('✅ Skipping all visual checks - pure model prediction');
       
       // STEP 2: Continue with model prediction
       // Teachable Machine uses 224x224 input size
@@ -345,8 +364,13 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
         interpolation: img.Interpolation.linear,
       );
       
-      // Teachable Machine expects input shape: [1, 224, 224, 3]
-      // Values normalized to 0-1 range
+      debugPrint('🔍 Image resized to: ${resizedImage.width}x${resizedImage.height}');
+      
+      // Try different normalization approaches for better model compatibility
+      // Option 1: Standard 0-1 normalization (current)
+      // Option 2: -1 to 1 normalization (some models prefer this)
+      // Option 3: ImageNet normalization (mean subtraction)
+      
       var input = List.generate(
         1,
         (batch) => List.generate(
@@ -355,11 +379,24 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
             inputSize,
             (x) {
               final pixel = resizedImage.getPixel(x, y);
-              return [
-                pixel.r / 255.0,  // Red channel (0-1)
-                pixel.g / 255.0,  // Green channel (0-1)
-                pixel.b / 255.0,  // Blue channel (0-1)
-              ];
+              
+              // Try standard 0-1 normalization first
+              double r = pixel.r / 255.0;
+              double g = pixel.g / 255.0;
+              double b = pixel.b / 255.0;
+              
+              // If model still doesn't work, try these alternatives:
+              // For -1 to 1 normalization: 
+              // double r = (pixel.r / 255.0) * 2.0 - 1.0;
+              // double g = (pixel.g / 255.0) * 2.0 - 1.0;
+              // double b = (pixel.b / 255.0) * 2.0 - 1.0;
+              
+              // For ImageNet normalization:
+              // double r = (pixel.r / 255.0 - 0.485) / 0.229;
+              // double g = (pixel.g / 255.0 - 0.456) / 0.224;
+              // double b = (pixel.b / 255.0 - 0.406) / 0.225;
+              
+              return [r, g, b];
             },
           ),
         ),
@@ -370,6 +407,9 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
       
       // Run inference
       debugPrint('🤖 Running model inference...');
+      debugPrint('📊 Input shape: ${input.length}x${input[0].length}x${input[0][0].length}x${input[0][0][0].length}');
+      debugPrint('📊 Expected output classes: ${_labels.length}');
+      
       _interpreter!.run(input, output);
       
       // Get predictions
@@ -377,6 +417,9 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
       
       debugPrint('🔍 RAW OUTPUT: $probabilities');
       debugPrint('🔍 Number of classes: ${probabilities.length}');
+      debugPrint('🔍 Output sum: ${probabilities.reduce((a, b) => a + b)}');
+      debugPrint('🔍 Max value: ${probabilities.reduce((a, b) => a > b ? a : b)}');
+      debugPrint('🔍 Min value: ${probabilities.reduce((a, b) => a < b ? a : b)}');
       
       // Find the class with highest probability
       int maxIndex = 0;
@@ -423,11 +466,11 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
       debugPrint('📊 ================================');
       
       // Validation checks for unknown objects
-      // VERY LENIENT thresholds - trust the Teachable Machine model
+      // EXTREMELY LENIENT thresholds - trust the model more
       
-      const double confidenceThreshold = 15.0; // Minimum 15% confidence (was 25%)
-      const double marginThreshold = 5.0; // Minimum 5% gap from 2nd place (was 10%)
-      const double absoluteMinimum = 0.10; // Must be at least 10% confident (was 20%)
+      const double confidenceThreshold = 5.0; // Minimum 5% confidence (reduced from 15%)
+      const double marginThreshold = 2.0; // Minimum 2% gap from 2nd place (reduced from 5%)
+      const double absoluteMinimum = 0.05; // Must be at least 5% confident (reduced from 10%)
       
       double margin = confidence - secondConfidence;
       
@@ -459,9 +502,9 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
       
       bool isLowConfidence = confidence < confidenceThreshold;
       bool isLowMargin = margin < marginThreshold;
-      bool isUniform = normalizedEntropy > 0.95; // High entropy = confused (was 0.90)
+      bool isUniform = normalizedEntropy > 0.98; // Very high entropy = confused (was 0.95)
       bool isTooWeak = maxProb < absoluteMinimum;
-      bool isLowVariance = stdDev < 0.05; // Low variance = all classes similar (was 0.08)
+      bool isLowVariance = stdDev < 0.02; // Very low variance = all classes similar (was 0.05)
       bool failedVisualCheck = false; // Disabled - trust the model
       
       debugPrint('📊 Validation checks:');

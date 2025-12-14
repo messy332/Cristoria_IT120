@@ -12,6 +12,7 @@ import 'package:image/image.dart' as img;
 import 'firebase_options.dart';
 import 'coffee_cup_info.dart';
 import 'history_page.dart';
+import 'landing_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,8 +26,21 @@ Future<void> main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  bool _showLanding = true;
+
+  void _navigateToScanner() {
+    setState(() {
+      _showLanding = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +69,9 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const CoffeeScannerPage(),
+      home: _showLanding 
+          ? LandingPage(onGetStarted: _navigateToScanner)
+          : const CoffeeScannerPage(),
     );
   }
 }

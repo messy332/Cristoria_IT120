@@ -95,7 +95,7 @@ Scape is trained to recognize these specific coffee cup types, each with its own
 
 1.  **Clone the repository**:
     ```bash
-    git clone https://github.com/messy332/scape.git
+    git clone https://github.com/messy332/Cristoria_IT120
     ```
 2.  **Install dependencies**:
     ```bash

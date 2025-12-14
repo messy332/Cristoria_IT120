@@ -466,11 +466,11 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
       debugPrint('📊 ================================');
       
       // Validation checks for unknown objects
-      // EXTREMELY LENIENT thresholds - trust the model more
+      // ULTRA LENIENT thresholds - trust the model almost completely
       
-      const double confidenceThreshold = 5.0; // Minimum 5% confidence (reduced from 15%)
-      const double marginThreshold = 2.0; // Minimum 2% gap from 2nd place (reduced from 5%)
-      const double absoluteMinimum = 0.05; // Must be at least 5% confident (reduced from 10%)
+      const double confidenceThreshold = 1.0; // Minimum 1% confidence (reduced from 5%)
+      const double marginThreshold = 0.5; // Minimum 0.5% gap from 2nd place (reduced from 2%)
+      const double absoluteMinimum = 0.01; // Must be at least 1% confident (reduced from 5%)
       
       double margin = confidence - secondConfidence;
       
@@ -502,17 +502,17 @@ class _CoffeeScannerPageState extends State<CoffeeScannerPage> {
       
       bool isLowConfidence = confidence < confidenceThreshold;
       bool isLowMargin = margin < marginThreshold;
-      bool isUniform = normalizedEntropy > 0.98; // Very high entropy = confused (was 0.95)
+      bool isUniform = normalizedEntropy > 0.99; // Ultra high entropy = confused (was 0.98)
       bool isTooWeak = maxProb < absoluteMinimum;
-      bool isLowVariance = stdDev < 0.02; // Very low variance = all classes similar (was 0.05)
+      bool isLowVariance = stdDev < 0.005; // Ultra low variance = all classes similar (was 0.02)
       bool failedVisualCheck = false; // Disabled - trust the model
       
       debugPrint('📊 Validation checks:');
       debugPrint('   - Low confidence (<${confidenceThreshold}%): $isLowConfidence (actual: ${confidence.toStringAsFixed(1)}%)');
       debugPrint('   - Low margin (<${marginThreshold}%): $isLowMargin (actual: ${margin.toStringAsFixed(1)}%)');
-      debugPrint('   - Uniform distribution (>95%): $isUniform (actual: ${(normalizedEntropy * 100).toStringAsFixed(1)}%)');
+      debugPrint('   - Uniform distribution (>99%): $isUniform (actual: ${(normalizedEntropy * 100).toStringAsFixed(1)}%)');
       debugPrint('   - Too weak (<${absoluteMinimum * 100}%): $isTooWeak');
-      debugPrint('   - Low variance (<0.05): $isLowVariance (actual: ${stdDev.toStringAsFixed(4)})');
+      debugPrint('   - Low variance (<0.005): $isLowVariance (actual: ${stdDev.toStringAsFixed(4)})');
       debugPrint('   - Visual check: DISABLED (trusting model)');
 
       

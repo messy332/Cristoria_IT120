@@ -12,7 +12,7 @@ class CoffeeCupGalleryPage extends StatelessWidget {
       'Espresso Demitasse Cup',
       'Double-Walled Insulated Mug',
       'Reusable Stainless Steel Travel Cup',
-      'Cappucino Cup(Italian Style)',
+      'Cappuccino Cup(Italian Style)',
       'Latte Glass(Irish Coffee Style)',
       'Yixing Clay Coffee Cup',
       'Ceramic Pour-Over Coffee Mug',
@@ -244,7 +244,7 @@ class CoffeeCupDetailPage extends StatelessWidget {
       'Espresso Demitasse Cup': 'assets/cups/espresso_demitasse.png',
       'Double-Walled Insulated Mug': 'assets/cups/double_walled.png',
       'Reusable Stainless Steel Travel Cup': 'assets/cups/stainless_travel.png',
-      'Cappucino Cup(Italian Style)': 'assets/cups/cappucino.png',
+      'Cappuccino Cup(Italian Style)': 'assets/cups/cappucino.png',
       'Latte Glass(Irish Coffee Style)': 'assets/cups/latte_glass.png',
       'Yixing Clay Coffee Cup': 'assets/cups/yixing_clay.png',
       'Ceramic Pour-Over Coffee Mug': 'assets/cups/ceramic_pourover.png',
@@ -284,7 +284,7 @@ class CoffeeCupDetailPage extends StatelessWidget {
         'description': 'Durable, insulated travel mug with secure lid, designed for on-the-go coffee consumption.',
         'use': 'Portable coffee drinking, commuting, and reducing single-use cup waste.',
       },
-      'Cappucino Cup(Italian Style)': {
+      'Cappuccino Cup(Italian Style)': {
         'origin': 'Italy',
         'description': 'Wide-brimmed porcelain cup (5-6 oz) with a saucer, designed to showcase latte art and accommodate foam.',
         'use': 'Serving cappuccinos with the perfect ratio of espresso, steamed milk, and foam.',

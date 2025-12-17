@@ -83,7 +83,7 @@ const parminder = {
 # ☕ Scape - Coffee Cup Variety Scanner
 
 <div align="center">
-  <img src="assets/coffee.png" alt="Scape Logo" width="120" height="120" />
+  <img src="src/scape/assets/coffee.png" alt="Scape Logo" width="120" height="120" />
   <br/>
   <h3><strog>SCAPE</strog></h3>
   <p>
@@ -101,7 +101,7 @@ Experience a seamless journey from detection to discovery.
 Start by launching the app. You are greeted with a clean interface featuring options to capture a new image via **Camera** or select an existing one from your **Gallery**.
 
 <div align="center">
-  <img src="assets/home_screen.png" alt="Home Screen" width="250" />
+  <img src="src/scape/assets/home_screen.png" alt="Home Screen" width="250" />
   &nbsp;&nbsp;&nbsp;&nbsp;
 </div>
 
@@ -109,7 +109,7 @@ Start by launching the app. You are greeted with a clean interface featuring opt
 Once an image is selected, Scape's advanced analyzes the visual characteristics of the cup—looking at shape, texture, and features—to determine its variety.
 
 <div align="center">
-  <img src="assets/analysis.png" alt="Analysis in Progress" width="250" />
+  <img src="src/scape/assets/analysis.png" alt="Analysis in Progress" width="250" />
 </div>
 
 ### 3. Smart Results
@@ -118,15 +118,15 @@ The application displays the **Predicted Class** along with a confidence score.
 *   **Detailed Info**: Tap on the result to learn more about the specific cup type.
 
 <div align="center">
-  <img src="assets/pic1.png" width="200" /> <img src="assets/pic2.png" width="200" /> <img src="assets/pic3.png" width="240" />
+  <img src="src/scape/assets/pic1.png" width="200" /> <img src="src/scape/assets/pic2.png" width="200" /> <img src="src/scape/assets/pic3.png" width="240" />
   <br/>
-  <img src="assets/pic4.png" width="200" /> <img src="assets/pic5.png" width="200" /> <img src="assets/pic6.png" width="200" />
+  <img src="src/scape/assets/pic4.png" width="200" /> <img src="src/scape/assets/pic5.png" width="200" /> <img src="src/scape/assets/pic6.png" width="200" />
   <br/>
-  <img src="assets/pic7.png" width="200" /> <img src="assets/pic8.png" width="200" /> <img src="assets/pic9.png" width="200" />
+  <img src="src/scape/assets/pic7.png" width="200" /> <img src="src/scape/assets/pic8.png" width="200" /> <img src="src/scape/assets/pic9.png" width="200" />
   <br/>
-  <img src="assets/pic10.png" width="200" /> <img src="assets/pic11.png" width="200" /> <img src="assets/pic12.png" width="200" />
+  <img src="src/scape/assets/pic10.png" width="200" /> <img src="src/scape/assets/pic11.png" width="200" /> <img src="src/scape/assets/pic12.png" width="200" />
   <br/>
-  <img src="assets/pic13.png" width="200" /> <img src="assets/pic14.png" width="200" /> 
+  <img src="src/scape/assets/pic13.png" width="200" /> <img src="src/scape/assets/pic14.png" width="200" /> 
 </div>
 
 ### 4. History & Tracking
@@ -136,7 +136,7 @@ Keep track of your coffee journey. The **History Page** logs every scan with:
 *   **Timestamp**: Exactly when the scan occurred.
 
 <div align="center">
-  <img src="assets/history.png" alt="History Page" width="250" />
+  <img src="src/scape/assets/history.png" alt="History Page" width="250" />
 </div>
 
 ---

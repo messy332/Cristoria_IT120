@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "67127217439",
+    "firebase_url": "https://scape-63847-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "scape-63847",
+    "storage_bucket": "scape-63847.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:67127217439:android:5b883049f3ea6f66dff42a",
+        "android_client_info": {
+          "package_name": "com.example.scape"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDyjkUwglGLsR7xL2SjYCM_vCyOtsdWhgw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
